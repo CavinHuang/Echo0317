@@ -15,7 +15,7 @@ const chapters=Object.entries(film.chapterNames).map(([index,name])=>({index:Num
 const graph={title:film.title,revision:film.revision,totalClips:film.totalClips,nodes,evidence,media,chapters};
 const rules=book.rules.map(r=>({...r}));
 const tracks=Object.entries(captions.tracks).map(([id,cues])=>({id,cues}));
-const shots=Object.entries(registry).map(([id,r])=>({id,chapter:r.chapter,status:r.status,path:r.path||'',duration:r.duration_sec,referenceIds:r.reference_ids||[]}));
+const shots=Object.entries(registry).map(([id,r])=>({id,chapter:r.chapter,status:r.status,path:r.path||'',duration:Number.isFinite(r.duration_sec) ? r.duration_sec : 0,referenceIds:r.reference_ids||[]}));
 for(const [name,data] of [['story.json',graph],['cases.json',{rules}],['captions.json',{tracks}],['shots.json',{shots}]]) {
  fs.writeFileSync(path.join(dir,'..','Assets','StreamingAssets','Data',name),JSON.stringify(data,null,2)+'\n');
 }
