@@ -1,0 +1,40 @@
+name: Import verified Unity source archive
+on:
+  push:
+    paths:
+      - 'bootstrap/READY'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Reassemble and verify source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f bootstrap/READY
+          test "$(find bootstrap/chunks -name '*.b64' | wc -l)" -eq 25
+          cat bootstrap/chunks/*.b64 | base64 --decode > /tmp/echo0317-source.tar.xz
+          printf '%s  %s\n' '12d6b3a082cf0f6c32229f32bf6ec8a73e146f53aea890cad4ab91a3679ec72e' /tmp/echo0317-source.tar.xz | sha256sum --check
+          tar --list -Jf /tmp/echo0317-source.tar.xz | grep -q 'Assets/Scripts/Core/EchoNarrative.cs'
+          tar -xJf /tmp/echo0317-source.tar.xz
+          test -s Assets/StreamingAssets/Data/story.json
+          test -s Assets/Scripts/Runtime/EchoGame.cs
+          test -s .github/workflows/hosted-unity-windows-alpha.yml
+      - name: Commit actual source files to default branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Assets Packages ProjectSettings Tests Tools .github
+          git add -f Tools/CoreHost/Echo0317.CoreHost.csproj
+          git diff --cached --quiet && { echo 'No source changes'; exit 0; }
+          git commit -m 'feat: import Unity narrative game runtime, story data and CI'
+          git push origin HEAD:main
