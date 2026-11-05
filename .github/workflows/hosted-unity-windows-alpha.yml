@@ -1,0 +1,160 @@
+name: Hosted Unity Windows Alpha - real EXE and native QA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: echo0317-hosted-alpha
+  cancel-in-progress: false
+
+jobs:
+  core-csharp:
+    name: Check exact Unity C# core on .NET 8
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute the actual game C# core and save logic
+        shell: pwsh
+        run: |
+          dotnet run --project Tools/CoreHost/Echo0317.CoreHost.csproj --configuration Release -- "$env:GITHUB_WORKSPACE"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install Python test dependencies
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r Tests/requirements-ci.txt
+      - name: Check all exported states, assets and Python test suites
+        shell: pwsh
+        run: |
+          python -m unittest discover -s Tests -p 'test_*.py' -q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  unity-tests:
+    name: Real Unity 6.3 EditMode and PlayMode
+    needs: core-csharp
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail early when Unity activation is missing
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
+            echo 'Unity account secrets are not configured (UNITY_EMAIL / UNITY_PASSWORD).' >&2; exit 1
+          fi
+          if [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_SERIAL" ]; then
+            echo 'Missing UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro).' >&2; exit 1
+          fi
+      - name: Run Unity Editor tests with license
+        id: unitytests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          testMode: All
+          coverageEnabled: false
+      - name: Upload real Unity test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo0317-unity-tests
+          path: ${{ steps.unitytests.outputs.artifactsPath }}
+          if-no-files-found: warn
+          retention-days: 14
+
+  unity-build:
+    name: Compile Windows x64 game with Unity
+    needs: unity-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unity 6.3 standalone Windows build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: StandaloneWindows64
+          buildMethod: Echo0317.Editor.EchoBuild.BuildWindowsHosted
+          buildsPath: build
+      - name: Require true Unity Windows build outputs
+        shell: bash
+        run: |
+          test -s build/StandaloneWindows64/Echo0317.exe
+          test -s build/StandaloneWindows64/UnityPlayer.dll
+          test -f build/StandaloneWindows64/Echo0317_Data/StreamingAssets/Data/story.json
+          test -f build/StandaloneWindows64/Echo0317_Data/StreamingAssets/Data/cases.json
+          test -f build/StandaloneWindows64/Echo0317_Data/StreamingAssets/Data/verified-ending-paths.json
+      - name: Upload native compiled player (not yet headless-tested)
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo0317-unverified-windows-player
+          path: build/StandaloneWindows64/
+          if-no-files-found: error
+          retention-days: 7
+
+  native-player-qa:
+    name: Run compiled Windows player and package verified Alpha
+    needs: unity-build
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download the actual compiled Unity Windows player
+        uses: actions/download-artifact@v4
+        with:
+          name: echo0317-unverified-windows-player
+          path: Builds/Windows
+      - name: Execute the EXE's native game self-test
+        shell: pwsh
+        run: |
+          .\Tools\qa-native-windows.ps1 -TimeoutSeconds 180
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate PE, story bytes and native QA; create distribution
+        shell: pwsh
+        run: |
+          python Tools/pack-hosted-alpha.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Player QA report even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo0317-native-player-qa
+          path: |
+            Builds/native-game-qa.json
+            Builds/native-game-qa.log
+            Builds/hosted-alpha-evidence.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Upload verified Windows Alpha ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo0317-Windows-Alpha-verified-headless
+          path: |
+            Builds/Echo0317-Windows-x64-internal-hosted.zip
+            Builds/hosted-alpha-sha256.txt
+          if-no-files-found: error
+          retention-days: 30
