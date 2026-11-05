@@ -337,9 +337,12 @@ namespace Echo0317.Runtime
             if (playing && !paused) { paused = true; video.Pause(); }
             bool refreshBoard = page == "cases" && modalFlow.Current == "cases" &&
                 !string.IsNullOrEmpty(focusedCaseId);
-            int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page &&
-                (page == "settings" || refreshBoard)
-                    ? ui.SelectedModalActionIndex() : -1;
+            int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page && page == "settings"
+                ? ui.SelectedModalActionIndex() : -1;
+            // Rebuild on pin/unpin must not send controller focus back to the
+            // first action or scroll the long evidence gallery back to the top.
+            string previousCard = refreshBoard ? ui.SelectedDossierCardId() : "";
+            float previousScroll = refreshBoard ? ui.ArchiveScroll.verticalNormalizedPosition : 1f;
             if (page == "cases" && modalFlow.Current != "cases")
             {
                 focusedCaseId = "";
@@ -387,6 +390,11 @@ namespace Echo0317.Runtime
             }
             ui.ResetModalScroll();
             if (restoreAction >= 0) ui.FocusModalAction(restoreAction);
+            if (refreshBoard)
+            {
+                ui.ArchiveScroll.verticalNormalizedPosition = previousScroll;
+                if (!string.IsNullOrEmpty(previousCard)) ui.FocusDossierCard(previousCard);
+            }
         }
         void ShowHistory()
         {
@@ -443,10 +451,12 @@ namespace Echo0317.Runtime
             foreach (var record in acquired)
             {
                 var id = record.Id;
-                ui.AddModalButton("▣  " + record.Label, () => {
-                    focusedEvidenceId = id;
-                    Open("evidence");
-                });
+                ui.AddDossierCard(id, "EVIDENCE  /  第 " + record.Chapter + " 幕",
+                    record.Label, "发现于 " + record.SceneTitle + "  ·  " + record.Clock,
+                    false, 0, () => {
+                        focusedEvidenceId = id;
+                        Open("evidence");
+                    });
             }
             ui.AddModalButton("进入证据推理板", () => Open("cases"));
         }
@@ -491,8 +501,8 @@ namespace Echo0317.Runtime
                     var card = item;
                     string status = item.Solved ? " ✓ 已解开" :
                         item.Ready ? " · 线索已齐" : " · 待调查";
-                    ui.AddModalButton("第 " + item.Chapter + " 幕 · " + item.Title + status,
-                        () => InspectCase(card.Id));
+                    ui.AddDossierCard(card.Id, "CASE  /  第 " + item.Chapter + " 幕",
+                        item.Title, status.Trim(), false, 0, () => InspectCase(card.Id));
                 }
                 return;
             }
@@ -512,7 +522,7 @@ namespace Echo0317.Runtime
                 "从本轮调查档案中选取两条线索，放入推理槽，再选择你认为成立的判断。");
             if (!string.IsNullOrEmpty(deductionFeedback))
             {
-                ui.AddModalText(deductionFeedback);
+                ui.AddBoardFeedback(deductionFeedback, "", deductionFeedback.StartsWith("推理成立", StringComparison.Ordinal));
                 deductionFeedback = "";
             }
             if (selectedCase.Solved)
@@ -525,38 +535,45 @@ namespace Echo0317.Runtime
                 });
                 return;
             }
-            ui.AddModalText("线索槽 ①  " +
-                (pinnedEvidence.Count > 0 ? catalog.EvidenceName(pinnedEvidence[0]) : "尚未固定"),
-                "线索槽 ②  " +
-                (pinnedEvidence.Count > 1 ? catalog.EvidenceName(pinnedEvidence[1]) : "尚未固定"));
+            var firstId = pinnedEvidence.Count > 0 ? pinnedEvidence[0] : "";
+            var secondId = pinnedEvidence.Count > 1 ? pinnedEvidence[1] : "";
+            ui.AddEvidenceSlots(
+                firstId.Length > 0 ? catalog.EvidenceName(firstId) : "",
+                secondId.Length > 0 ? catalog.EvidenceName(secondId) : "",
+                firstId, secondId,
+                () => ToggleEvidencePin(firstId), () => ToggleEvidencePin(secondId));
+            ui.AddModalText("已取得的证据  /  " + acquired.Length + " 条",
+                "点击卡片固定到槽位；已固定的卡片或槽位再次点击可以移除。");
             if (acquired.Length == 0)
                 ui.AddModalText("档案仍为空", "先返回剧情搜集证据，再来尝试推理。");
             foreach (var clue in acquired)
             {
                 var id = clue.Id;
-                bool pinned = pinnedEvidence.Contains(id);
-                ui.AddModalButton((pinned ? "✓ 已固定 · " : "＋ 放入槽位 · ") +
-                    clue.Label, () => ToggleEvidencePin(id),
-                    pinned || pinnedEvidence.Count < 2);
+                int pinnedIndex = pinnedEvidence.IndexOf(id);
+                ui.AddDossierCard(id, "EVIDENCE  /  第 " + clue.Chapter + " 幕",
+                    clue.Label, "发现于 " + clue.SceneTitle + "  ·  " + clue.Clock,
+                    pinnedIndex >= 0, pinnedIndex + 1, () => ToggleEvidencePin(id));
             }
             if (pinnedEvidence.Count == 2)
             {
                 if (EchoInvestigation.PairMatches(catalog, state, rule.id, pinnedEvidence))
                 {
-                    ui.AddModalText("线索能够互相印证", "你已经找到足以讨论该案件的两条记录。现在选择你的判断。");
-                    foreach (var option in rule.options)
+                    ui.AddBoardFeedback("线索关联成立", "依据这两条记录，选择你认为能够成立的判断。", true);
+                    for (int i = 0; i < rule.options.Length; i++)
                     {
-                        var answer = option.id;
-                        ui.AddModalButton("我的判断：" + option.text, () => TryDeduction(rule.id, answer));
+                        int index = i;
+                        var answer = rule.options[i].id;
+                        ui.AddJudgementCard(index + 1, rule.options[i].text,
+                            () => TryDeduction(rule.id, answer));
                     }
                 }
                 else
-                    ui.AddModalText("这组证据尚不能解释此案",
-                        "试着更换其中一条，或在档案中确认各线索的获得场景。不会扣除推理次数。");
+                    ui.AddBoardFeedback("这组证据尚不能解释此案",
+                        "尝试更换其中一条线索，或检查获得场景。错误配对不消耗推理次数。", false);
             }
             else
-                ui.AddModalText("已固定 " + pinnedEvidence.Count + " / 2 条",
-                    "从上方已获得的记录中选择两条，再提出判断。");
+                ui.AddBoardFeedback("已固定 " + pinnedEvidence.Count + " / 2 条",
+                    "从已取得的卡片中选择两条互相印证的证据。", true);
             if (pinnedEvidence.Count > 0)
                 ui.AddModalButton("清空已选线索", () => {
                     pinnedEvidence.Clear();
