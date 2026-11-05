@@ -31,7 +31,8 @@ class Stage22InvestigationContracts(unittest.TestCase):
         self.assertIn('EchoNarrative.RecordDeduction(catalog, state, ruleId, answer)', src)
         self.assertIn('ResetInvestigation();', src)
         self.assertIn('var target = modalFlow.Back();', src)
-        self.assertIn('线索槽 ①', src)
+        self.assertIn('ui.AddEvidenceSlots(', src)
+        self.assertIn('ui.AddDossierCard(', src)
 
     def test_corehost_executes_real_caseboard_and_five_existing_cases_are_unchanged(self):
         project = ET.parse(ROOT / 'Tools/CoreHost/Echo0317.CoreHost.csproj').getroot()

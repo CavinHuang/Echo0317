@@ -15,6 +15,7 @@ namespace Echo0317.UI
         public readonly ScrollRect StoryScroll, ArchiveScroll;
         public readonly GameObject DiscoveryCard, CaptionBackdrop;
         readonly CanvasGroup gameInput, menuInput;
+        readonly EchoDossierSound dossierSound;
         GameObject focusBeforeModal;
         public readonly Text DiscoveryText, SaveStatus;
         public readonly Text Chapter, Clock, FilmStatus, Title, Speaker, Body, Subtitle, ModalTitle, Hint, MenuProgress;
@@ -34,6 +35,7 @@ namespace Echo0317.UI
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var root = new GameObject("Echo UI",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
             Canvas = root.GetComponent<Canvas>(); Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            dossierSound = root.AddComponent<EchoDossierSound>();
             var scaler = root.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1600, 900); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
@@ -283,6 +285,154 @@ namespace Echo0317.UI
                  !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
                 EventSystem.current.SetSelectedGameObject(b.gameObject);
         }
+        /// <summary>Original textured, selectable evidence/case card.</summary>
+        public Button AddDossierCard(string id, string category, string title, string source,
+            bool pinned, int slotNumber, Action action)
+        {
+            var rt = Panel("DossierCard-" + id, ModalList, Vector2.zero, Vector2.one,
+                Vector2.zero, Vector2.zero, Color.white);
+            var image = rt.GetComponent<Image>();
+            image.sprite = EchoDossierArtwork.Card;
+            image.color = pinned ? new Color(1f, .93f, .78f, 1f) : Color.white;
+            rt.gameObject.AddComponent<LayoutElement>().preferredHeight = 136;
+            var button = rt.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(() => action?.Invoke());
+            var colors = button.colors;
+            colors.highlightedColor = new Color(1f, .96f, .87f, 1f);
+            colors.pressedColor = new Color(.75f, .75f, .73f, 1f);
+            colors.selectedColor = new Color(1f, .95f, .83f, 1f);
+            button.colors = colors;
+            rt.gameObject.AddComponent<EchoDossierCardKey>().Id = id;
+            rt.gameObject.AddComponent<EchoFocusOutline>();
+            rt.gameObject.AddComponent<EchoScrollSelection>().Target = ArchiveScroll;
+            rt.gameObject.AddComponent<EchoCancelAction>().OnBack = () => OnBack?.Invoke();
+            Label("DossierCategory",rt,category,14,Gold,TextAnchor.MiddleLeft,
+                new Vector2(0,1),new Vector2(1,1),new Vector2(30,-29),new Vector2(-150,-5),FontStyle.Bold);
+            Label("DossierTitle",rt,title,22,White,TextAnchor.MiddleLeft,
+                new Vector2(0,.26f),new Vector2(1,.85f),new Vector2(30,0),new Vector2(-25,-2),FontStyle.Bold);
+            Label("DossierSource",rt,source,15,Faded,TextAnchor.MiddleLeft,
+                new Vector2(0,0),new Vector2(1,.26f),new Vector2(30,3),new Vector2(-25,0));
+            if (pinned)
+            {
+                Label("PinStatus",rt,"已固定  " + slotNumber.ToString("00"),15,Gold,TextAnchor.MiddleRight,
+                    new Vector2(.74f,1),new Vector2(1,1),new Vector2(0,-29),new Vector2(-20,-5),FontStyle.Bold);
+                rt.gameObject.AddComponent<EchoDossierReveal>();
+            }
+            if (EventSystem.current != null &&
+                (EventSystem.current.currentSelectedGameObject == null ||
+                 !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
+                EventSystem.current.SetSelectedGameObject(button.gameObject);
+            return button;
+        }
+
+        /// <summary>Two genuine selectable slots; click an occupied slot to remove its clue.</summary>
+        public void AddEvidenceSlots(string first, string second, string firstId, string secondId,
+            Action removeFirst, Action removeSecond)
+        {
+            var holder = Panel("EvidenceSlotsRow",ModalList,Vector2.zero,Vector2.one,
+                Vector2.zero,Vector2.zero,Color.clear);
+            holder.gameObject.AddComponent<LayoutElement>().preferredHeight = 132;
+            var row = holder.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.spacing = 12;
+            row.childControlWidth = true; row.childControlHeight = true;
+            row.childForceExpandWidth = true; row.childForceExpandHeight = true;
+            AddEvidenceSlot(holder,1,first,firstId,removeFirst);
+            AddEvidenceSlot(holder,2,second,secondId,removeSecond);
+        }
+
+        void AddEvidenceSlot(Transform parent,int number,string title,string id,Action remove)
+        {
+            bool occupied = !string.IsNullOrEmpty(id);
+            var rt=Panel("EvidenceSlot-"+number,parent,Vector2.zero,Vector2.one,
+                Vector2.zero,Vector2.zero,Color.white);
+            rt.GetComponent<Image>().sprite=EchoDossierArtwork.Slot;
+            rt.gameObject.AddComponent<LayoutElement>().flexibleWidth=1f;
+            var button=rt.gameObject.AddComponent<Button>();
+            button.targetGraphic=rt.GetComponent<Image>();
+            button.interactable=occupied;
+            button.onClick.AddListener(()=>remove?.Invoke());
+            if (occupied)
+            {
+                rt.gameObject.AddComponent<EchoDossierCardKey>().Id=id;
+                rt.gameObject.AddComponent<EchoFocusOutline>();
+                rt.gameObject.AddComponent<EchoScrollSelection>().Target=ArchiveScroll;
+                rt.gameObject.AddComponent<EchoCancelAction>().OnBack=()=>OnBack?.Invoke();
+            }
+            Label("SlotNumber",rt,"证据槽 "+number.ToString("00"),15,Gold,TextAnchor.MiddleLeft,
+                new Vector2(0,.70f),new Vector2(1,1),new Vector2(18,0),new Vector2(-12,-6),FontStyle.Bold);
+            Label("SlotContent",rt,occupied?title:"＋  等待放入线索",occupied?18:16,
+                occupied?White:Faded,TextAnchor.MiddleLeft,
+                new Vector2(0,.14f),new Vector2(1,.72f),new Vector2(18,0),new Vector2(-14,-2));
+            if(occupied)Label("SlotAction",rt,"点击移除",13,Faded,TextAnchor.MiddleRight,
+                new Vector2(.6f,0),new Vector2(1,.25f),Vector2.zero,new Vector2(-12,0));
+        }
+
+        public void AddJudgementCard(int index,string judgement,Action action)
+        {
+            var rt=Panel("Judgement-"+index,ModalList,Vector2.zero,Vector2.one,
+                Vector2.zero,Vector2.zero,Rgb(41,56,66));
+            rt.gameObject.AddComponent<LayoutElement>().preferredHeight=106;
+            var button=rt.gameObject.AddComponent<Button>();
+            button.targetGraphic=rt.GetComponent<Image>();
+            button.onClick.AddListener(()=>action?.Invoke());
+            rt.gameObject.AddComponent<EchoFocusOutline>();
+            rt.gameObject.AddComponent<EchoScrollSelection>().Target=ArchiveScroll;
+            rt.gameObject.AddComponent<EchoCancelAction>().OnBack=()=>OnBack?.Invoke();
+            Label("JudgementIndex",rt,"判断 "+index.ToString("00"),15,Gold,TextAnchor.MiddleLeft,
+                new Vector2(0,.72f),new Vector2(1,1),new Vector2(22,0),new Vector2(-20,-4),FontStyle.Bold);
+            Label("JudgementText",rt,judgement,21,White,TextAnchor.MiddleLeft,
+                new Vector2(0,0),new Vector2(1,.76f),new Vector2(22,5),new Vector2(-20,-4));
+            if (EventSystem.current != null &&
+                (EventSystem.current.currentSelectedGameObject == null ||
+                 !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
+                EventSystem.current.SetSelectedGameObject(button.gameObject);
+        }
+
+        public void PlayDossierSound(EchoDossierCue cue,bool muted) => dossierSound.Play(cue,muted);
+
+        public void AddBoardFeedback(string title,string explanation,bool success)
+        {
+            var rt=Panel("DossierFeedback",ModalList,Vector2.zero,Vector2.one,
+                Vector2.zero,Vector2.zero,success?Rgb(31,66,60):Rgb(76,45,49));
+            rt.gameObject.AddComponent<LayoutElement>().preferredHeight=
+                string.IsNullOrEmpty(explanation)?86:124;
+            rt.GetComponent<Image>().raycastTarget=false;
+            Panel("FeedbackEdge",rt,new Vector2(0,0),new Vector2(0,1),
+                Vector2.zero,new Vector2(5,0),success?Gold:Red)
+                .GetComponent<Image>().raycastTarget=false;
+            Label("FeedbackHeading",rt,title,21,White,TextAnchor.MiddleLeft,
+                new Vector2(0,.58f),Vector2.one,new Vector2(23,0),
+                new Vector2(-22,-2),FontStyle.Bold);
+            if(!string.IsNullOrEmpty(explanation))
+                Label("FeedbackDetail",rt,explanation,17,Faded,TextAnchor.UpperLeft,
+                    Vector2.zero,new Vector2(1,.6f),new Vector2(23,5),new Vector2(-20,-3));
+            rt.gameObject.AddComponent<EchoDossierReveal>();
+        }
+
+        public string SelectedDossierCardId()
+        {
+            if(EventSystem.current==null)return "";
+            var selected=EventSystem.current.currentSelectedGameObject;
+            var key=selected!=null?selected.GetComponent<EchoDossierCardKey>():null;
+            return key!=null?key.Id:"";
+        }
+
+        public void FocusDossierCard(string id)
+        {
+            if(EventSystem.current==null||string.IsNullOrEmpty(id))return;
+            foreach(var key in ModalList.GetComponentsInChildren<EchoDossierCardKey>())
+            {
+                if(key.Id!=id||!key.name.StartsWith("DossierCard-",StringComparison.Ordinal))continue;
+                var button=key.GetComponent<Button>();
+                if(button!=null&&button.IsActive()&&button.IsInteractable())
+                {
+                    EventSystem.current.SetSelectedGameObject(button.gameObject);
+                    return;
+                }
+            }
+        }
+
         static RectTransform Panel(string name,Transform parent,Vector2 min,Vector2 max,Vector2 offsetMin,Vector2 offsetMax,Color color)
         {
             var go=new GameObject(name,typeof(RectTransform),typeof(Image));
