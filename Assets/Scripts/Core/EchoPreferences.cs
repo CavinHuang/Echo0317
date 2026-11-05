@@ -12,6 +12,8 @@ namespace Echo0317.Core
         public bool muted = false;
         public bool fullscreen = true;
         public float speed = 1f;
+        // Added compatibly to v1: missing fields in old JSON are normalized to 1x.
+        public float subtitleScale = 1f;
     }
 
     // Video and accessibility settings are separate from story checkpoints.
@@ -36,6 +38,9 @@ namespace Echo0317.Core
             if (value == null || value.version != 1) return new EchoPlayerOptions();
             if (float.IsNaN(value.speed) || float.IsInfinity(value.speed)) value.speed = 1f;
             value.speed = Mathf.Clamp(value.speed, 0.75f, 1.5f);
+            if (float.IsNaN(value.subtitleScale) || float.IsInfinity(value.subtitleScale) || value.subtitleScale <= 0f)
+                value.subtitleScale = 1f;
+            value.subtitleScale = Mathf.Clamp(value.subtitleScale, 1f, 1.5f);
             return value;
         }
 
@@ -66,11 +71,11 @@ namespace Echo0317.Core
             return new EchoPlayerOptions();
         }
 
-        public void Update(bool captionsEnabled, bool muted, bool fullscreen, float speed)
+        public void Update(bool captionsEnabled, bool muted, bool fullscreen, float speed, float subtitleScale = 1f)
         {
             var next = Sanitized(new EchoPlayerOptions {
                 captionsEnabled = captionsEnabled, muted = muted,
-                fullscreen = fullscreen, speed = speed
+                fullscreen = fullscreen, speed = speed, subtitleScale = subtitleScale
             });
             var tmp = file + ".tmp";
             File.WriteAllText(tmp, JsonUtility.ToJson(next, true), System.Text.Encoding.UTF8);

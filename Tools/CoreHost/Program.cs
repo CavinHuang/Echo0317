@@ -137,14 +137,52 @@ static class Program
             Require(playback.ClipId == "" && !playback.IsFinished && !playback.IsPaused,
                 "leaving a scene must discard all video state");
             Require(!playback.CanPresent(thirdToken), "halted scene accepted a stale frame");
+            // The same modal flow class is compiled into the Unity runtime:
+            // pause -> settings -> casebook -> B -> pause -> B -> game.
+            var dialogs = new EchoModalFlow();
+            Require(!dialogs.IsOpen && dialogs.Back() == "", "new UI should have no modal");
+            dialogs.Open("pause");
+            dialogs.Open("settings");
+            dialogs.Open("cases");
+            Require(dialogs.Current == "cases", "modal page switching failed");
+            Require(dialogs.Back() == "pause", "cancel must return to pause, not resume behind it");
+            Require(dialogs.Back() == "" && !dialogs.IsOpen, "cancel from pause must close");
+            dialogs.Open("saves");
+            dialogs.Confirm("saves");
+            Require(dialogs.Back() == "saves", "cancel save confirmation must return to saves");
+            Require(dialogs.Back() == "", "direct saves page should close to underlying game");
+            dialogs.Open("pause");
+            dialogs.Open("saves");
+            dialogs.Confirm("saves");
+            Require(dialogs.Back() == "saves" && dialogs.Back() == "pause" &&
+                    dialogs.Back() == "", "nested save confirmation back chain failed");
+            dialogs.Confirm("");
+            Require(dialogs.Back() == "" && !dialogs.IsOpen, "new-game confirmation cancel must close");
+            dialogs.Open("settings");
+            dialogs.Open("settings");
+            Require(dialogs.Back() == "", "refreshing settings must not accumulate back steps");
             var optionRoot = Path.Combine(Path.GetTempPath(), "echo-pref-" + Guid.NewGuid().ToString("N"));
             try
             {
                 var prefs = new EchoPreferences(optionRoot);
-                prefs.Update(false, true, false, 1.25f);
+                prefs.Update(false, true, false, 1.25f, 1.5f);
                 prefs = new EchoPreferences(optionRoot);
                 Require(!prefs.Current.captionsEnabled && prefs.Current.muted && !prefs.Current.fullscreen &&
-                        Math.Abs(prefs.Current.speed - 1.25f) < .001f, "settings persistence");
+                        Math.Abs(prefs.Current.speed - 1.25f) < .001f &&
+                        Math.Abs(prefs.Current.subtitleScale - 1.5f) < .001f, "settings persistence");
+                // Old v1 options have no subtitleScale field: read them at 100%.
+                var optionsFile = Path.Combine(optionRoot, "player-options.json");
+                File.WriteAllText(optionsFile,
+                    "{\"version\":1,\"captionsEnabled\":true,\"muted\":false,\"fullscreen\":true,\"speed\":1}");
+                prefs = new EchoPreferences(optionRoot);
+                Require(Math.Abs(prefs.Current.subtitleScale - 1f) < .001f,
+                    "older options must default to readable 100% captions");
+                prefs.Update(true, false, true, 1f, float.NaN);
+                Require(Math.Abs(prefs.Current.subtitleScale - 1f) < .001f,
+                    "invalid subtitle scale must normalize");
+                prefs.Update(true, false, true, 1f, 999f);
+                Require(Math.Abs(new EchoPreferences(optionRoot).Current.subtitleScale - 1.5f) < .001f,
+                    "oversize subtitles must clamp");
             }
             finally { if (Directory.Exists(optionRoot)) Directory.Delete(optionRoot, true); }
             var report = new {

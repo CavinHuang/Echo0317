@@ -13,11 +13,13 @@ namespace Echo0317.UI
         public readonly RectTransform VideoLayer, MenuBackground;
         public readonly RectTransform ChoiceList, ModalList, MenuActions;
         public readonly ScrollRect StoryScroll, ArchiveScroll;
-        public readonly GameObject DiscoveryCard;
+        public readonly GameObject DiscoveryCard, CaptionBackdrop;
+        readonly CanvasGroup gameInput, menuInput;
+        GameObject focusBeforeModal;
         public readonly Text DiscoveryText, SaveStatus;
         public readonly Text Chapter, Clock, FilmStatus, Title, Speaker, Body, Subtitle, ModalTitle, Hint, MenuProgress;
         public readonly Button ContinueButton;
-        public Action OnAdvance;
+        public Action OnAdvance, OnBack;
         public static readonly Color White = Rgb(245, 244, 241);
         public static readonly Color Faded = Rgb(175, 191, 205);
         public static readonly Color Gold = Rgb(226, 185, 126);
@@ -77,6 +79,9 @@ namespace Echo0317.UI
             StoryScroll.verticalNormalizedPosition = 1;
             Hint=Label("Hint",storyPanel,"选择会留下痕迹",16,Faded,TextAnchor.MiddleLeft,new Vector2(0,0),new Vector2(1,0),new Vector2(36,21),new Vector2(-24,86));
             FilmStatus=Label("Shot",Game.transform,"",16,Faded,TextAnchor.LowerLeft,new Vector2(0,0),new Vector2(.46f,0),new Vector2(48,28),new Vector2(-10,76));
+            CaptionBackdrop=Panel("CaptionBackdrop",Game.transform,new Vector2(.02f,0),new Vector2(.48f,0),
+                new Vector2(0,78),new Vector2(0,222),Ink(.76f)).gameObject;
+            CaptionBackdrop.GetComponent<Image>().raycastTarget = false;
             Subtitle=Label("Subtitle",Game.transform,"",26,White,TextAnchor.LowerCenter,new Vector2(.03f,0),new Vector2(.47f,0),new Vector2(0,90),new Vector2(0,200),FontStyle.Bold);
             Subtitle.gameObject.AddComponent<Shadow>().effectColor=Color.black;
             var lowerTint=Panel("LeftLowerTint",Game.transform,new Vector2(0,0),new Vector2(.47f,0),new Vector2(0,0),new Vector2(0,84),Ink(.6f));
@@ -107,6 +112,8 @@ namespace Echo0317.UI
             Button("新的轮回",MenuActions,()=>OnNewGame?.Invoke(),23,Ink(.96f));
             Button("存档管理",MenuActions,()=>OnSaves?.Invoke(),22,Ink(.96f));
             Button("游戏设置",MenuActions,()=>OnSettings?.Invoke(),22,Ink(.96f));
+            gameInput=Game.AddComponent<CanvasGroup>();
+            menuInput=Menu.AddComponent<CanvasGroup>();
             MenuProgress=Label("MenuMeta",Menu.transform,"五幕 · 四个结局 · 全剧情可体验",18,Faded,TextAnchor.MiddleRight,
                 new Vector2(.54f,.06f),new Vector2(.96f,.12f),Vector2.zero,Vector2.zero);
             // Modal is a genuine in-game overlay for evidence, casebook, chapters, saves and settings.
@@ -114,7 +121,8 @@ namespace Echo0317.UI
             var modalPanel=Panel("ArchiveCard",Modal.transform,new Vector2(.13f,.08f),new Vector2(.87f,.91f),Vector2.zero,Vector2.zero,Rgb(22,31,43));
             ModalTitle=Label("ModalTitle",modalPanel,"档案",35,White,TextAnchor.MiddleLeft,
                 new Vector2(0,1),new Vector2(1,1),new Vector2(38,-112),new Vector2(-100,-33),FontStyle.Bold);
-            ButtonAt("关闭",modalPanel,()=>OnCloseModal?.Invoke(),new Vector2(1,1),new Vector2(1,1),new Vector2(-136,-100),new Vector2(-35,-41),19,Ink(.9f));
+            var closeButton=ButtonAt("关闭",modalPanel,()=>OnCloseModal?.Invoke(),new Vector2(1,1),new Vector2(1,1),new Vector2(-136,-100),new Vector2(-35,-41),19,Ink(.9f));
+            closeButton.gameObject.AddComponent<EchoCancelAction>().OnBack = () => OnBack?.Invoke();
             ArchiveScroll=Scroll("ArchiveScroll",modalPanel,Vector2.zero,Vector2.one,new Vector2(43,38),new Vector2(-44,-122),out ModalList);
             Vertical(ModalList,12);
             var modalFit=ModalList.gameObject.AddComponent<ContentSizeFitter>();modalFit.verticalFit=ContentSizeFitter.FitMode.PreferredSize;
@@ -144,24 +152,71 @@ namespace Echo0317.UI
         }
         public void SetModal(bool visible)
         {
+            var events = EventSystem.current;
+            if (visible && !Modal.activeSelf)
+                focusBeforeModal = events != null ? events.currentSelectedGameObject : null;
             Modal.SetActive(visible);
-            if (visible && EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(null);
-            else if (!visible && EventSystem.current != null)
+            // Merely covering a menu with an Image does NOT remove its buttons
+            // from gamepad navigation. Disable both pointer and selectable input
+            // behind the modal, then restore them when it closes.
+            gameInput.interactable = !visible;
+            gameInput.blocksRaycasts = !visible;
+            menuInput.interactable = !visible;
+            menuInput.blocksRaycasts = !visible;
+
+            if (events == null) return;
+            if (visible)
             {
-                if (Menu.activeSelf)
-                    EventSystem.current.SetSelectedGameObject(ContinueButton.interactable
-                        ? ContinueButton.gameObject : MenuActions.GetChild(1).gameObject);
-                else if (Game.activeSelf)
+                events.SetSelectedGameObject(null);
+                return;
+            }
+            var previous = focusBeforeModal;
+            focusBeforeModal = null;
+            if (previous != null)
+            {
+                var button = previous.GetComponent<Button>();
+                if (button != null && button.IsActive() && button.IsInteractable() &&
+                    ((Game.activeSelf && previous.transform.IsChildOf(Game.transform)) ||
+                     (Menu.activeSelf && previous.transform.IsChildOf(Menu.transform))))
                 {
-                    foreach (var button in ChoiceList.GetComponentsInChildren<Button>())
-                    {
-                        if (!button.interactable) continue;
-                        EventSystem.current.SetSelectedGameObject(button.gameObject);
-                        break;
-                    }
+                    events.SetSelectedGameObject(previous);
+                    return;
                 }
             }
+            if (Menu.activeSelf)
+                events.SetSelectedGameObject(ContinueButton.interactable
+                    ? ContinueButton.gameObject : MenuActions.GetChild(1).gameObject);
+            else if (Game.activeSelf)
+            {
+                foreach (var button in ChoiceList.GetComponentsInChildren<Button>())
+                {
+                    if (!button.IsActive() || !button.IsInteractable()) continue;
+                    events.SetSelectedGameObject(button.gameObject);
+                    break;
+                }
+            }
+        }
+        public void SetSubtitleOptions(bool enabled, float scale)
+        {
+            Subtitle.fontSize = Mathf.RoundToInt(26f * Mathf.Clamp(scale, 1f, 1.5f));
+            Subtitle.gameObject.SetActive(enabled);
+            CaptionBackdrop.SetActive(enabled);
+        }
+        public int SelectedModalActionIndex()
+        {
+            if (EventSystem.current == null) return -1;
+            var current = EventSystem.current.currentSelectedGameObject;
+            var buttons = ModalList.GetComponentsInChildren<Button>();
+            for (int i=0;i<buttons.Length;i++)
+                if (buttons[i].gameObject == current) return i;
+            return -1;
+        }
+        public void FocusModalAction(int index)
+        {
+            if (EventSystem.current == null || index < 0) return;
+            var buttons = ModalList.GetComponentsInChildren<Button>();
+            if (index < buttons.Length && buttons[index].IsInteractable())
+                EventSystem.current.SetSelectedGameObject(buttons[index].gameObject);
         }
         public void ClearChoices()
         {
@@ -222,6 +277,7 @@ namespace Echo0317.UI
         {
             var b=Button(text,ModalList,action,21,available?Rgb(51,69,83):Rgb(32,38,45),0.48f);b.interactable=available;
             b.gameObject.AddComponent<EchoScrollSelection>().Target = ArchiveScroll;
+            b.gameObject.AddComponent<EchoCancelAction>().OnBack = () => OnBack?.Invoke();
             if (available && EventSystem.current != null &&
                 (EventSystem.current.currentSelectedGameObject == null ||
                  !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
@@ -260,6 +316,7 @@ namespace Echo0317.UI
         {
             var rt=Panel("Button",parent,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,background);
             var button=rt.gameObject.AddComponent<Button>();button.onClick.AddListener(()=>action?.Invoke());
+            rt.gameObject.AddComponent<EchoFocusOutline>();
             rt.gameObject.AddComponent<LayoutElement>().preferredHeight=72f*heightRatio+29;
             Label("ButtonLabel",rt,text,size,White,TextAnchor.MiddleLeft,Vector2.zero,Vector2.one,new Vector2(18,4),new Vector2(-14,-4));
             return button;
@@ -268,6 +325,7 @@ namespace Echo0317.UI
         {
             var rt=Panel("Action",parent,min,max,offsetMin,offsetMax,color);
             var b=rt.gameObject.AddComponent<Button>();b.onClick.AddListener(()=>action?.Invoke());
+            rt.gameObject.AddComponent<EchoFocusOutline>();
             Label("Label",rt,title,size,White,TextAnchor.MiddleCenter,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);
             return b;
         }
@@ -281,6 +339,32 @@ namespace Echo0317.UI
             content.pivot=new Vector2(.5f,1);scroll.content=content;scroll.viewport=viewport;
             return scroll;
         }
+    }
+
+    /// <summary>Use Unity's Submit/Cancel event, so gamepad B and Escape share one back action.</summary>
+    public sealed class EchoCancelAction : MonoBehaviour, ICancelHandler
+    {
+        public Action OnBack;
+        public void OnCancel(BaseEventData eventData)
+        {
+            eventData.Use();
+            OnBack?.Invoke();
+        }
+    }
+
+    /// <summary>Visible navigation focus for keyboard and controllers.</summary>
+    public sealed class EchoFocusOutline : MonoBehaviour, ISelectHandler, IDeselectHandler
+    {
+        Outline outline;
+        void Awake()
+        {
+            outline = gameObject.AddComponent<Outline>();
+            outline.effectColor = EchoGameUI.Gold;
+            outline.effectDistance = new Vector2(2.5f, -2.5f);
+            outline.enabled = false;
+        }
+        public void OnSelect(BaseEventData eventData) { if (outline != null) outline.enabled = true; }
+        public void OnDeselect(BaseEventData eventData) { if (outline != null) outline.enabled = false; }
     }
 
     /// <summary>Keep focused choices visible in scrollable pages when using a controller/keyboard.</summary>

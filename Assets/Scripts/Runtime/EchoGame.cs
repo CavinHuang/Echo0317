@@ -19,7 +19,9 @@ namespace Echo0317.Runtime
         EchoVideoDirector video;
         GameProgress state;
         bool playing, paused, captionsEnabled = true, muted, fullscreen = true;
-        string modalPage = "";
+        float subtitleScale = 1f;
+        readonly EchoModalFlow modalFlow = new EchoModalFlow();
+        int lastBackFrame = -1;
         string deductionFeedback = "";
         float lastCaptionTick, discoveryUntil;
         bool autosaveFailed;
@@ -59,6 +61,8 @@ namespace Echo0317.Runtime
                 captionsEnabled = preferences.Current.captionsEnabled;
                 muted = preferences.Current.muted;
                 fullscreen = preferences.Current.fullscreen;
+                subtitleScale = preferences.Current.subtitleScale;
+                ui.SetSubtitleOptions(captionsEnabled, subtitleScale);
                 video = gameObject.AddComponent<EchoVideoDirector>();
                 video.Initialize(catalog, ui.VideoLayer);
                 video.SetMuted(muted);
@@ -73,7 +77,8 @@ namespace Echo0317.Runtime
                 ui.OnHistory = () => { historyPage = 0; Open("history"); };
                 ui.OnSaves = () => Open("saves");
                 ui.OnPause = Pause;
-                ui.OnCloseModal = CloseModal;
+                ui.OnCloseModal = HandleBack;
+                ui.OnBack = HandleBack;
                 try
                 {
                     state = saves.HasAuto ? saves.LoadAuto() : EchoNarrative.Fresh();
@@ -122,7 +127,7 @@ namespace Echo0317.Runtime
         }
         void PersistPreferences()
         {
-            try { preferences.Update(captionsEnabled, muted, fullscreen, video.Speed); }
+            try { preferences.Update(captionsEnabled, muted, fullscreen, video.Speed, subtitleScale); }
             catch (Exception e) { Debug.LogWarning("设置无法持久保存: " + e.Message); }
         }
         void RequestNewGame()
@@ -133,17 +138,18 @@ namespace Echo0317.Runtime
                 return;
             }
             if (playing && !paused) { paused = true; video.Pause(); }
+            modalFlow.Confirm("");
             ui.SetModal(true);
             ui.ClearModal();
             ui.ModalTitle.text = "开始新的轮回？";
             ui.AddModalText("当前进度将被重新开始", "已经取得的结局图鉴仍会保留。已保存到手动槽位的进度不会删除。请先确认，避免误覆盖自动存档。");
             ui.AddModalButton("确认 · 开始新轮回", NewGame);
-            ui.AddModalButton("取消 · 保留当前进度", () => { if (playing) CloseModal(); else ui.SetModal(false); });
+            ui.AddModalButton("取消 · 保留当前进度", HandleBack);
         }
         void NewGame()
         {
             var previous = state?.endings ?? Array.Empty<string>();
-            ui.SetModal(false); modalPage = "";
+            ui.SetModal(false); modalFlow.Reset();
             video.Halt(); ui.HideDiscovery(); discoveryUntil = 0f;
             state = EchoNarrative.Fresh(); state.endings = previous.Distinct().ToArray();
             historyPage = 0;
@@ -171,14 +177,31 @@ namespace Echo0317.Runtime
         void ReturnToMenu()
         {
             // Returning to the menu must not Resume() the last film for one frame.
-            ui.SetModal(false); modalPage = ""; playing = false; paused = false;
+            ui.SetModal(false); modalFlow.Reset(); playing = false; paused = false;
             video.Halt(); video.SetSceneArt("S01"); ui.HideDiscovery(); discoveryUntil = 0f;
             ui.SetGameVisible(false); ui.HideDiscovery(); RefreshMenu();
         }
         void CloseModal()
         {
-            ui.SetModal(false);modalPage="";
+            ui.SetModal(false);
+            modalFlow.Reset();
             if (paused) { paused=false;video.Resume(); }
+        }
+        void HandleBack()
+        {
+            // Escape can be dispatched by both MonoBehaviour.Update and
+            // StandaloneInputModule.Cancel in the same frame. Handle it once.
+            if (lastBackFrame == Time.frameCount) return;
+            lastBackFrame = Time.frameCount;
+            if (ui == null) return;
+            if (!ui.Modal.activeSelf)
+            {
+                if (playing) Pause();
+                return;
+            }
+            var target = modalFlow.Back();
+            if (string.IsNullOrEmpty(target)) CloseModal();
+            else Open(target);
         }
         void Persist()
         {
@@ -286,7 +309,10 @@ namespace Echo0317.Runtime
             // Investigation and save panels pause the film so users cannot miss
             // dialogue while reading long notes or editing a save slot.
             if (playing && !paused) { paused = true; video.Pause(); }
-            modalPage = page; ui.SetModal(true);
+            int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page && page == "settings"
+                ? ui.SelectedModalActionIndex() : -1;
+            modalFlow.Open(page);
+            ui.SetModal(true);
             ui.ClearModal();
             switch(page)
             {
@@ -323,6 +349,7 @@ namespace Echo0317.Runtime
                 if (page != "saves")ui.AddModalButton("存档",()=>Open("saves"));
             }
             ui.ResetModalScroll();
+            if (restoreAction >= 0) ui.FocusModalAction(restoreAction);
         }
         void ShowHistory()
         {
@@ -416,6 +443,7 @@ namespace Echo0317.Runtime
         }
         void ConfirmRewindTo(int index)
         {
+            modalFlow.Confirm("timeline");
             ui.SetModal(true);
             ui.ClearModal();
             ui.ModalTitle.text = "确定回溯这条时间线？";
@@ -483,6 +511,7 @@ namespace Echo0317.Runtime
         }
         void ConfirmOldImport()
         {
+            modalFlow.Confirm("saves");
             ui.SetModal(true);
             ui.ClearModal();
             ui.ModalTitle.text = "导入旧版存档？";
@@ -498,6 +527,7 @@ namespace Echo0317.Runtime
         }
         void ConfirmLoadSlot(int slot)
         {
+            modalFlow.Confirm("saves");
             ui.SetModal(true);
             ui.ClearModal();
             ui.ModalTitle.text = "确认读取存档？";
@@ -521,6 +551,7 @@ namespace Echo0317.Runtime
         }
         void ConfirmSlotAction(int slot, bool overwrite)
         {
+            modalFlow.Confirm("saves");
             ui.SetModal(true);
             ui.ClearModal();
             ui.ModalTitle.text = overwrite ? "确认覆盖存档？" : "确认删除存档？";
@@ -542,7 +573,21 @@ namespace Echo0317.Runtime
         {
             ui.ModalTitle.text="设置 / OPTIONS";
             ui.AddModalText("播放与字幕", "这里的设置不影响存档中的剧情选择。");
-            ui.AddModalButton("字幕："+(captionsEnabled?"开启":"关闭"),()=>{captionsEnabled=!captionsEnabled;PersistPreferences();Open("settings");UpdateCaption();});
+            ui.AddModalButton("字幕："+(captionsEnabled?"开启":"关闭"),()=>{
+                captionsEnabled=!captionsEnabled;
+                ui.SetSubtitleOptions(captionsEnabled, subtitleScale);
+                PersistPreferences();Open("settings");UpdateCaption();
+            });
+            foreach (var size in new []{1f,1.25f,1.5f})
+            {
+                float selectedSize = size;
+                ui.AddModalButton("字幕字号 " + (int)(size*100f) + "%" +
+                    (Mathf.Abs(subtitleScale-size)<.01f?"  ✓":""),()=>{
+                        subtitleScale=selectedSize;
+                        ui.SetSubtitleOptions(captionsEnabled, subtitleScale);
+                        PersistPreferences();Open("settings");
+                    });
+            }
             ui.AddModalButton("声音："+(muted?"静音":"开启"),()=>{muted=!muted;video.SetMuted(muted);PersistPreferences();Open("settings");});
             foreach(var speed in new []{.75f,1f,1.25f,1.5f})
             {
@@ -576,10 +621,7 @@ namespace Echo0317.Runtime
                 discoveryUntil = 0f;
             }
             if(Time.unscaledTime-lastCaptionTick>.12f){lastCaptionTick=Time.unscaledTime;UpdateCaption();}
-            if(Input.GetKeyDown(KeyCode.Escape))
-            {
-                if(ui.Modal.activeSelf)CloseModal();else if(playing)Pause();
-            }
+            if(Input.GetKeyDown(KeyCode.Escape)) { HandleBack(); return; }
             if(!playing || paused || ui.Modal.activeSelf) return;
             if(Input.GetKeyDown(KeyCode.Tab)){Open("evidence");return;}
             if(Input.GetKeyDown(KeyCode.L)){historyPage=0;Open("history");return;}
@@ -596,8 +638,9 @@ namespace Echo0317.Runtime
                     return;
                 }
             }
-            if(Input.GetKeyDown(KeyCode.Space)||Input.GetKeyDown(KeyCode.Return))
-                if(choices.Length==1 && EchoNarrative.Allowed(choices[0], state.flags))Choose(state.node, choices[0]);
+            // Enter/Space/gamepad Submit are handled ONLY by the focused uGUI
+            // Button. Calling Choose() here as well can advance two single-
+            // choice nodes on the same keypress when EventSystem fires first.
         }
     }
 }
