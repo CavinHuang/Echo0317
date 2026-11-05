@@ -425,8 +425,8 @@ namespace Echo0317.Runtime
                 {
                     ui.AddModalText("证据记录 · " + focus.Label,
                         "发现于第 " + focus.Chapter + " 幕 · " + focus.SceneTitle +
-                        "\\n时刻：" + focus.Clock + "  ·  剧情第 " + focus.AcquiredAtStep + " 步" +
-                        "\\n这条记录只来自本轮真实调查，不会因查看而改变剧情。");
+                        "\n时刻：" + focus.Clock + "  ·  剧情第 " + focus.AcquiredAtStep + " 步" +
+                        "\n这条记录只来自本轮真实调查，不会因查看而改变剧情。");
                     ui.AddModalButton("带着线索前往推理板", () => Open("cases"));
                     ui.AddModalButton("返回线索档案", () => {
                         focusedEvidenceId = "";
