@@ -28,6 +28,7 @@ static class Program
             var seen = new HashSet<string>();
             var reached = new HashSet<string>();
             int deadEnds = 0;
+            var reachableCases = new HashSet<string>();
             while (pending.Count > 0)
             {
                 var (nodeId, flags) = pending.Dequeue();
@@ -36,6 +37,9 @@ static class Program
                 Require(seen.Count < 100001, "state explosion");
                 reached.Add(nodeId);
                 var node = catalog.Nodes[nodeId];
+                foreach (var rule in catalog.Cases.rules)
+                    if (node.chapterIndex >= rule.chapter && rule.clues.All(flags.Contains))
+                        reachableCases.Add(rule.id);
                 if (node.ending) continue;
                 var options = EchoNarrative.Choices(node).Where(x => EchoNarrative.Allowed(x, flags)).ToArray();
                 if (options.Length == 0) { deadEnds++; continue; }
@@ -48,6 +52,8 @@ static class Program
                 }
             }
             Require(seen.Count == 69497 && reached.Count == 55 && deadEnds == 0, "reachability parity");
+            Require(reachableCases.SetEquals(catalog.Cases.rules.Select(r => r.id)),
+                "not all five deduction puzzles have a reachable, acquired evidence pair");
             using var routeJson = JsonDocument.Parse(File.ReadAllText(Path.Combine(data, "verified-ending-paths.json")));
             var paths = routeJson.RootElement.GetProperty("paths").EnumerateArray().ToArray();
             Require(paths.Length == 4, "missing ending routes");
