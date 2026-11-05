@@ -23,6 +23,9 @@ namespace Echo0317.Runtime
         readonly EchoModalFlow modalFlow = new EchoModalFlow();
         int lastBackFrame = -1;
         string deductionFeedback = "";
+        string focusedCaseId = "";
+        string focusedEvidenceId = "";
+        readonly List<string> pinnedEvidence = new List<string>();
         float lastCaptionTick, discoveryUntil;
         bool autosaveFailed;
         int historyPage;
@@ -153,6 +156,7 @@ namespace Echo0317.Runtime
             video.Halt(); ui.HideDiscovery(); discoveryUntil = 0f;
             state = EchoNarrative.Fresh(); state.endings = previous.Distinct().ToArray();
             historyPage = 0;
+            ResetInvestigation();
             Persist();
             Begin();
         }
@@ -181,6 +185,14 @@ namespace Echo0317.Runtime
             video.Halt(); video.SetSceneArt("S01"); ui.HideDiscovery(); discoveryUntil = 0f;
             ui.SetGameVisible(false); ui.HideDiscovery(); RefreshMenu();
         }
+        void ResetInvestigation()
+        {
+            focusedCaseId = "";
+            focusedEvidenceId = "";
+            pinnedEvidence.Clear();
+            deductionFeedback = "";
+        }
+
         void CloseModal()
         {
             ui.SetModal(false);
@@ -197,6 +209,20 @@ namespace Echo0317.Runtime
             if (!ui.Modal.activeSelf)
             {
                 if (playing) Pause();
+                return;
+            }
+            if (modalFlow.Current == "cases" && !string.IsNullOrEmpty(focusedCaseId))
+            {
+                focusedCaseId = "";
+                pinnedEvidence.Clear();
+                deductionFeedback = "";
+                Open("cases");
+                return;
+            }
+            if (modalFlow.Current == "evidence" && !string.IsNullOrEmpty(focusedEvidenceId))
+            {
+                focusedEvidenceId = "";
+                Open("evidence");
                 return;
             }
             var target = modalFlow.Back();
@@ -309,8 +335,19 @@ namespace Echo0317.Runtime
             // Investigation and save panels pause the film so users cannot miss
             // dialogue while reading long notes or editing a save slot.
             if (playing && !paused) { paused = true; video.Pause(); }
-            int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page && page == "settings"
-                ? ui.SelectedModalActionIndex() : -1;
+            bool refreshBoard = page == "cases" && modalFlow.Current == "cases" &&
+                !string.IsNullOrEmpty(focusedCaseId);
+            int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page &&
+                (page == "settings" || refreshBoard)
+                    ? ui.SelectedModalActionIndex() : -1;
+            if (page == "cases" && modalFlow.Current != "cases")
+            {
+                focusedCaseId = "";
+                pinnedEvidence.Clear();
+                deductionFeedback = "";
+            }
+            if (page == "evidence" && modalFlow.Current != "evidence")
+                focusedEvidenceId = "";
             modalFlow.Open(page);
             ui.SetModal(true);
             ui.ClearModal();
@@ -379,51 +416,187 @@ namespace Echo0317.Runtime
 
         void ShowEvidence()
         {
-            ui.ModalTitle.text = "线索档案 / CASE FILE";
-            ui.AddModalText("你真正收集到的证据", "只有经过这一轮调查获得的线索才会显示。\n未发现的真相不会被提前剧透。");
-            if (state.flags.Length == 0) ui.AddModalText("暂无记录。开门之前，再核实一件事。");
-            foreach (var id in state.flags) ui.AddModalText("▣  " + catalog.EvidenceName(id));
+            ui.ModalTitle.text = "调查档案 / CASE FILE";
+            var acquired = EchoInvestigation.Archive(catalog, state);
+            if (!string.IsNullOrEmpty(focusedEvidenceId))
+            {
+                var focus = acquired.FirstOrDefault(x => x.Id == focusedEvidenceId);
+                if (focus != null)
+                {
+                    ui.AddModalText("证据记录 · " + focus.Label,
+                        "发现于第 " + focus.Chapter + " 幕 · " + focus.SceneTitle +
+                        "\\n时刻：" + focus.Clock + "  ·  剧情第 " + focus.AcquiredAtStep + " 步" +
+                        "\\n这条记录只来自本轮真实调查，不会因查看而改变剧情。");
+                    ui.AddModalButton("带着线索前往推理板", () => Open("cases"));
+                    ui.AddModalButton("返回线索档案", () => {
+                        focusedEvidenceId = "";
+                        Open("evidence");
+                    });
+                    return;
+                }
+                focusedEvidenceId = "";
+            }
+            ui.AddModalText("本轮记录 · " + acquired.Length + " 条",
+                "选择线索查看它首次出现的剧情位置；回溯或读档后，只保留当前时间线的记录。");
+            if (acquired.Length == 0)
+                ui.AddModalText("暂无线索", "调查场景、核对信息后，这里会逐步出现你的发现。");
+            foreach (var record in acquired)
+            {
+                var id = record.Id;
+                ui.AddModalButton("▣  " + record.Label, () => {
+                    focusedEvidenceId = id;
+                    Open("evidence");
+                });
+            }
+            ui.AddModalButton("进入证据推理板", () => Open("cases"));
         }
+
+        void InspectCase(string id)
+        {
+            if (!EchoInvestigation.VisibleCases(catalog, state).Any(x => x.Id == id)) return;
+            focusedCaseId = id;
+            pinnedEvidence.Clear();
+            deductionFeedback = "";
+            Open("cases");
+        }
+
+        void ToggleEvidencePin(string clueId)
+        {
+            if (string.IsNullOrEmpty(focusedCaseId) ||
+                !EchoInvestigation.Archive(catalog, state).Any(x => x.Id == clueId)) return;
+            if (pinnedEvidence.Contains(clueId))
+            {
+                pinnedEvidence.Remove(clueId);
+                deductionFeedback = "";
+            }
+            else if (pinnedEvidence.Count < 2)
+            {
+                pinnedEvidence.Add(clueId);
+                deductionFeedback = "";
+            }
+            else deductionFeedback = "两个槽位已满。先取消一条已固定的线索，再选择其他证据。";
+            Open("cases");
+        }
+
         void ShowCases()
         {
             ui.ModalTitle.text = "证据推理 / DEDUCTION";
+            var available = EchoInvestigation.VisibleCases(catalog, state);
+            if (string.IsNullOrEmpty(focusedCaseId))
+            {
+                ui.AddModalText("案件目录 · 已接触 " + available.Length + " / " + catalog.Cases.rules.Length,
+                    "从已到达的章节中选择调查事项。未接触案件不会提前透露。");
+                foreach (var item in available)
+                {
+                    var card = item;
+                    string status = item.Solved ? " ✓ 已解开" :
+                        item.Ready ? " · 线索已齐" : " · 待调查";
+                    ui.AddModalButton("第 " + item.Chapter + " 幕 · " + item.Title + status,
+                        () => InspectCase(card.Id));
+                }
+                return;
+            }
+            var selectedCase = available.FirstOrDefault(x => x.Id == focusedCaseId);
+            if (selectedCase == null)
+            {
+                focusedCaseId = "";
+                pinnedEvidence.Clear();
+                ui.AddModalText("该案件尚未接触", "当前时间线没有足够的剧情进度。");
+                ui.AddModalButton("返回案件目录", () => Open("cases"));
+                return;
+            }
+            var rule = catalog.Rules[selectedCase.Id];
+            var acquired = EchoInvestigation.Archive(catalog, state);
+            ui.AddModalText("第 " + rule.chapter + " 幕 · " + rule.title +
+                (selectedCase.Solved ? "  ✓" : ""),
+                "从本轮调查档案中选取两条线索，放入推理槽，再选择你认为成立的判断。");
             if (!string.IsNullOrEmpty(deductionFeedback))
             {
                 ui.AddModalText(deductionFeedback);
                 deductionFeedback = "";
             }
-            ui.AddModalText("两份证据，一个判断", "推理可以选错并重新修正，但不能凭空获得尚未调查到的线索。");
-            foreach (var rule in catalog.Cases.rules)
+            if (selectedCase.Solved)
             {
-                bool solved = EchoNarrative.IsSolved(catalog,state,rule.id);
-                var have = rule.clues.Where(state.flags.Contains).ToArray();
-                ui.AddModalText("第 " + rule.chapter + " 幕 · " + rule.title + (solved ? "  ✓" : ""),
-                    string.Join("\n", rule.clues.Select(id => state.flags.Contains(id) ? "✓ " + catalog.EvidenceName(id) : "？ 未取得的证据")));
-                if (solved) { ui.AddModalText(rule.explanation); continue; }
-                if (have.Length < rule.clues.Length) { ui.AddModalText("请先从剧情中收集齐证据。"); continue; }
-                foreach (var option in rule.options)
-                {
-                    var opt = option;
-                    ui.AddModalButton("推断：" + opt.text,()=>TryDeduction(rule.id,opt.id));
-                }
-                ui.AddModalText("提示：" + rule.hint);
+                ui.AddModalText("推理已完成", rule.explanation);
+                ui.AddModalButton("返回案件目录", () => {
+                    focusedCaseId = "";
+                    pinnedEvidence.Clear();
+                    Open("cases");
+                });
+                return;
             }
+            ui.AddModalText("线索槽 ①  " +
+                (pinnedEvidence.Count > 0 ? catalog.EvidenceName(pinnedEvidence[0]) : "尚未固定"),
+                "线索槽 ②  " +
+                (pinnedEvidence.Count > 1 ? catalog.EvidenceName(pinnedEvidence[1]) : "尚未固定"));
+            if (acquired.Length == 0)
+                ui.AddModalText("档案仍为空", "先返回剧情搜集证据，再来尝试推理。");
+            foreach (var clue in acquired)
+            {
+                var id = clue.Id;
+                bool pinned = pinnedEvidence.Contains(id);
+                ui.AddModalButton((pinned ? "✓ 已固定 · " : "＋ 放入槽位 · ") +
+                    clue.Label, () => ToggleEvidencePin(id),
+                    pinned || pinnedEvidence.Count < 2);
+            }
+            if (pinnedEvidence.Count == 2)
+            {
+                if (EchoInvestigation.PairMatches(catalog, state, rule.id, pinnedEvidence))
+                {
+                    ui.AddModalText("线索能够互相印证", "你已经找到足以讨论该案件的两条记录。现在选择你的判断。");
+                    foreach (var option in rule.options)
+                    {
+                        var answer = option.id;
+                        ui.AddModalButton("我的判断：" + option.text, () => TryDeduction(rule.id, answer));
+                    }
+                }
+                else
+                    ui.AddModalText("这组证据尚不能解释此案",
+                        "试着更换其中一条，或在档案中确认各线索的获得场景。不会扣除推理次数。");
+            }
+            else
+                ui.AddModalText("已固定 " + pinnedEvidence.Count + " / 2 条",
+                    "从上方已获得的记录中选择两条，再提出判断。");
+            if (pinnedEvidence.Count > 0)
+                ui.AddModalButton("清空已选线索", () => {
+                    pinnedEvidence.Clear();
+                    deductionFeedback = "";
+                    Open("cases");
+                });
+            ui.AddModalButton("返回案件目录", () => {
+                focusedCaseId = "";
+                pinnedEvidence.Clear();
+                deductionFeedback = "";
+                Open("cases");
+            });
         }
-        void TryDeduction(string ruleId,string answer)
+
+        void TryDeduction(string ruleId, string answer)
         {
             try
             {
-                state = EchoNarrative.RecordDeduction(catalog,state,ruleId,answer);
+                if (focusedCaseId != ruleId ||
+                    !EchoInvestigation.PairMatches(catalog, state, ruleId, pinnedEvidence))
+                {
+                    deductionFeedback = "提交前请重新检查当前固定的两条证据。";
+                    Open("cases");
+                    return;
+                }
+                state = EchoNarrative.RecordDeduction(catalog, state, ruleId, answer);
                 Persist();
                 var rule = catalog.Rules[ruleId];
                 bool success = rule.correct == answer;
-                // Put the outcome at the TOP of the refreshed casebook, not
-                // below all five cases where it is invisible after scroll reset.
-                deductionFeedback = success ? "推理成立：" + rule.explanation : "推理尚不成立：" + rule.hint;
+                deductionFeedback = success ? "推理成立：" + rule.explanation :
+                    "推理尚不成立：" + rule.hint;
                 Open("cases");
             }
-            catch(Exception e) { ui.AddModalText("无法提交：" + e.Message); }
+            catch (Exception e)
+            {
+                deductionFeedback = "无法提交：" + e.Message;
+                Open("cases");
+            }
         }
+
         void ShowTimeline()
         {
             ui.ModalTitle.text = "时间线 / REWIND";
@@ -461,6 +634,7 @@ namespace Echo0317.Runtime
             discoveryUntil = 0f;
             state = loaded;
             historyPage = 0;
+            ResetInvestigation();
             Persist();
             CloseModal();
             if (!playing) Begin(); else Render();
