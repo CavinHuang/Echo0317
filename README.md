@@ -1,18 +1,183 @@
-# Echo0317 / 《03:17 · 回声》
+# 《03:17 · 回声》Stage 17｜GitHub 托管 Unity Windows Alpha 构建通路
 
-Unity 6.3 LTS (6000.3.2f1) narrative FMV game project. Five acts, 55 story nodes, four endings, five evidence deductions.
+**Windows EXE 尚未生成。** 本轮加入了无需用户自备 Windows Runner 的 GitHub Hosted Unity CI：真实 .NET 8 C# 编译 → Unity EditMode/PlayMode → GameCI Windows x64 Unity 编译 → Windows Runner 启动生成的 EXE 并进行原生四结局自检 → 校验、打包。
 
-## Project status
-**Internal Alpha — not a released game.** The C# narrative and desktop game runtime exists, but the Windows Unity Player has not yet been successfully compiled and launched. Eight programmatic previs clips are **not final cinematic footage**. Release gating deliberately blocks shipping without approved footage.
+**当前 42 项离线测试通过；真实 Unity 编译和 Windows EXE 未执行。** 此路线需要私有 GitHub 仓库与 Unity 授权 Secrets。请勿在对话中发送任何许可证、Unity 密码或账号令牌。
 
-## How to build
-- Install Unity 6.3 LTS with Windows Build Support; use Unity Hub to open this project.
-- Run EditMode/PlayMode tests before building.
-- For hosted builds, run the GitHub Actions workflow `Hosted Unity Windows Alpha` after setting Unity license secrets on this repository.
-- A compiled Windows player must successfully run its native four-ending QA before packaging.
+- [Stage 17 完整说明、测试与阻塞](docs/STAGE17-HOSTED-UNITY-ALPHA.md)
+- [GitHub Actions 真正的托管 Unity 构建工作流](.github/workflows/hosted-unity-windows-alpha.yml)
+- [生成的 EXE 原生 QA / 二进制验证与打包器](Tools/pack-hosted-alpha.py)
+- [原有 Windows 自托管/本地 Unity 构建入口](Tools/build-alpha-windows.ps1)
 
-## Security
-Never commit Unity license credentials or generated `Library/`, `Temp/`, `Builds/`, or `Logs/` directories.
+---
 
-## Current milestone
-Bring up the first **real Windows x64 Unity Alpha** and attach compilation/test/runtime logs. The hosted build workflow will not be represented as a successful EXE build until it actually runs.
+# 《03:17 · 回声》Stage 16｜Windows Alpha 构建验收工程
+
+**当前状态：尚未生成 Unity Windows EXE。** Stage 16 已编写 Windows 一键原生构建/验收、独立 C# 核心编译与四结局 QA，并修复视频重复播放与返回菜单的音频问题。**本机仅运行离线测试，未装 Unity Editor / .NET SDK，不能宣称原生构建通过。**
+
+## Windows 11 一次性验收入口
+
+安装并激活 Unity **6.3 LTS**、Windows Build Support、Python 3.11+，然后在工程根目录运行：
+
+```powershell
+$env:UNITY_EDITOR_PATH = 'C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe'
+.\Tools\build-alpha-windows.ps1
+```
+
+流程会自动执行 Unity 导入 → EditMode/PlayMode → Windows EXE → EXE 四结局运行时 QA → GUI 主菜单启动 → 打包、SHA-256 和证据报告。如果失败，`Builds/stage16-alpha-evidence.json` 记录失败阶段。`-SkipInteractiveSmoke` 仅供没有 GUI 桌面的 CI 使用，不能视为通过真实桌面启动。
+
+独立核心 C# 编译：`dotnet run --project Tools/CoreHost/Echo0317.CoreHost.csproj --configuration Release -- .`；不依赖 Unity License，但不能代替 Unity Editor 和 Player 构建。
+
+详细的执行环境、代码变更、测试和阻塞证据：[`docs/STAGE16-WINDOWS-ALPHA-STATUS.md`](docs/STAGE16-WINDOWS-ALPHA-STATUS.md)。
+
+---
+
+# 《03:17 · 回声》 Stage 15｜Unity 原生玩家推进安全与连续性
+
+**正式开发路线：Unity 6.3 LTS + C#，Windows / Steam。** 该包是 Unity 源码工程，**不是 Windows EXE**；当前执行环境没有 Unity Editor 或 C# 编译器，因此没有验证实际 Player 运行。
+
+### 本阶段已写入的游戏代码
+
+- 切换剧情时立即停用旧选项，并在 C# 层验证选项所属节点，阻止旧点击回调导致意外跳剧情。
+- 剧情、卷宗滚动复位；键盘/手柄选中的长列表按钮尝试滚动到可见区域。
+- 线索收录反馈、自动保存失败的游戏内告警；推理结果在卷宗顶部展示。
+- 手动读取存档、导入旧 JSON 与回溯增加确认；切换进度前停止旧影片解码/声音。
+- Windows 编译后自检扩大为 **69,497 全状态可达审计 + 0 个非结局死路**，并保留四结局、存档往返和防伪验证。
+
+离线验证：**30 项 Python 单测通过**、55 个可达剧情节点、四结局、五推理题、8 条预演 MP4。Unity EditMode / PlayMode 和 Windows EXE **尚未运行或构建**。Release 仍被 27 个未获批正式影片镜头阻止。
+
+- **完整进度与改动审计**：[Stage 15 报告](docs/STAGE15-PLAYER-CONTINUITY.md)
+- **真实离线验证证据**：`Builds/stage15-preflight.json`、`Builds/stage15-offline-unit.log`
+- **构建与原生验收**：下方保留完整 Unity 导入和 Windows 构建流程。
+
+---
+
+# 《03:17 · 回声》Stage 14 — Unity 游戏玩家体验与数据安全
+
+> 本项目是 Unity 6.3 LTS 原生源码工程。**尚未在 Unity Editor 编译或生成已验证 Windows EXE**。当前正式 AI 镜头缺失，不能按正式 Release 发行。
+
+本轮改动：
+- 新游戏、覆盖和删除存档前二次确认。
+- 独立持久的字幕、静音、倍速、全屏/窗口模式设置；从主菜单直接进入。
+- 菜单、剧情、弹窗的键盘/手柄可访问焦点。
+- Unity 6 `ENABLE_LEGACY_INPUT_MANAGER` 导入和构建预检查。
+- EditMode/PlayMode 新用例（仅新增源码，等待在 Unity 执行）。
+
+详细清单：[Stage 14 进度与缺口报告](docs/STAGE14-PLAYER-UX-REPORT.md)。
+
+---
+
+# 《03:17 · 回声》Unity 6.3 LTS / Stage 13 原生 Player 自检工程
+
+本仓库是独立的 **Unity + C#** 影游源代码项目，正式发行目标为 Windows/Steam；**不需要 Electron，也不在 Unity 内运行 HTML/WebView**。Stage 10 着重修复视频状态、输入与菜单暂停、补 Unity 原生测试与 Windows 发行构建管线。
+
+> 当前环境没有 Unity Editor，因此**尚未通过 Unity 编译、PlayMode 和 Windows x64 EXE 实机测试**。下载的是项目源码，不是已完成上架的游戏。
+
+## 已迁移并保留
+
+- 五幕 55 节点、38 个分支入口、四种结局，69,497 个可达剧情状态的独立数据验证。
+- 五道证据推理、自动存档 + 三手动槽位、章节回溯、图鉴与复盘。
+- Unity uGUI 主菜单、剧情界面、档案、推理与设置；双 VideoPlayer 与 RenderTexture 影片播放器。
+- 8 条 H.264/AAC 动态分镜、五张场景参考图；40 份待生成的 AI 视频提示词。视频未制作完成仍可走剧情。
+- 43 个镜头登记 ID 中 40 个为生成任务、3 个 V07/V13/V17 为分组父镜头。
+
+## 打开与启动
+
+1. Windows 上安装 Unity Hub 与 Unity **6.3 LTS**（本项目首次锁定 `6000.3.2f1`）；如需 Windows 构建，还要 Windows Build Support。
+2. Unity Hub > Add project from disk，选解压后的**项目根目录**，而不是 `Assets` 文件夹。
+3. 首次导入将创建 `Assets/Scenes/EchoEntry.unity` 并填入 Build Settings；如未创建，在 Unity 顶部执行 **03:17 / 初始化入口场景**。
+4. 按 Play，主菜单应出现。视频资源缺失时可继续剧情，不影响证据与四结局逻辑。
+
+## 本机已执行的非 Unity 检查
+
+```bash
+python Tests/test_export.py
+python Tests/test_release_assets.py
+python Tests/test_csharp_structure.py
+```
+
+## 真正的原生验收（必须在安装 Unity 的 Windows 机器运行）
+
+```powershell
+$env:UNITY_EDITOR_PATH = 'C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe'
+.\Tools\test-unity.ps1
+.\Tools\build-windows.ps1
+```
+
+`test-unity.ps1` 分别运行 EditMode 和 PlayMode 测试，并验证 XML 测试输出；`build-windows.ps1` 默认先运行这些测试，再构建 Windows x64，校验 `.exe` 与 Unity `_Data` 目录并生成分发 ZIP 和 SHA-256 文件清单。
+
+GitHub 自托管 Windows Runner 的手动工作流位于 `.github/workflows/windows-unity-native.yml`；它不会自动生成已验证的安装包，必须先配置 Runner、Unity 和许可。
+
+## 工程目录
+
+| 路径 | 内容 |
+| --- | --- |
+| `Assets/Scripts/Core` | C# 剧情、推理、JSON 存档和校验 |
+| `Assets/Scripts/Runtime` | 游戏控制器与原生双 VideoPlayer |
+| `Assets/Scripts/UI` | Unity 原生 uGUI 主菜单/对话/推理/存档 |
+| `Assets/StreamingAssets/Data` | 剧情、镜头、字幕、五个推理和四结局回归路线 |
+| `Assets/StreamingAssets/Media/Previs` | 八条内部预演视频 |
+| `Assets/StreamingAssets/Art` | 五张场景参考 |
+| `Assets/Tests/EditMode` | 图验证、四结局 C# 重放、存档与防伪测试 |
+| `Assets/Tests/PlayMode` | Unity UI、视频重播/暂停的基础运行测试 |
+| `Production/Stage4/prompts` | 40 个 AI 正式视频生成任务提示词 |
+| `Tools` | PowerShell Unity 原生测试及 Windows 构建/打包脚本 |
+| `docs/STAGE10-NATIVE-VERIFICATION.md` | 逐项修复及发行剩余阻塞的真实审计报告 |
+
+**下一步重点：在有 Unity 许可证和 Windows Build Support 的实际环境首次导入、跑测试、修编译问题，再拿到真正的 Windows 运行日志与全幕游戏验证。**
+
+## Stage 11 增量（2026-11-05）
+
+- 修复历史存档选项文字校验的宽松匹配；仅允许唯一目标的无文字旧存档兼容。
+- 自动存档及 3 个手动存档槽使用 `.bak` 版本回退；修复损坏恢复及槽位删除。
+- 修复视频复用旧 RenderTexture 帧及播放器交接时音频可能重叠。
+- `python Tools/doctor.py`：统一验证剧情、视频、提示词与 C# 静态结构，并明确报告 Unity 编辑器是否存在。
+- `python Tests/test_release_gate.py --profile internal`：允许原 8 条动态分镜的内部 Alpha。
+- `python Tests/test_release_gate.py --profile release`：目前按预期阻止发行；缺少 27 条剧情必需的获批正式影片。
+- `Tools/build-windows.ps1 -Release`：新增正式发行构建开关；默认无参数仍为内部 Alpha。
+- 完整结果参见 `docs/STAGE11-NATIVE-VERIFICATION.md`。**当前没有生成 Windows EXE，也没有在 Unity 中运行测试。**
+
+## Stage 12 增量：原生编译准备与首帧切换保护
+
+- **新增程序集引用**：运行时与 PlayMode 测试显式引用 `UnityEngine.UI`，避免 Unity 6.3 由于 asmdef 引用不完整而导入失败。
+- **切镜安全**：取消过期的 `VideoPlayer.Prepare`，在新镜头首帧就绪后切换，防止快速连续操作时暴露旧画面或产生音频重叠。播放是否平滑仍需 Unity 实机测量。
+- **启动失败反馈**：缺失 `StreamingAssets/Data` 时显示可见的错误提示，不留下空白游戏窗口。
+- **可验证的导入证据**：`Tools/verify-unity-import.ps1` 运行原生 Unity Editor 导入与编译检查，写 `Builds/unity-import-verification.json`；这一过程必须在实际 Unity 环境执行。
+- **构建保护**：Release 不能跳过测试、清理旧构建输出避免旧文件误通过；追加 6 项离线工程约束测试和原生 PlayMode 测试用例。
+
+Windows 验收流程：
+
+```powershell
+$env:UNITY_EDITOR_PATH = 'C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe'
+python Tools/doctor.py
+.\Tools\verify-unity-import.ps1
+.\Tools\test-unity.ps1
+.\Tools\build-windows.ps1
+.\Tools\smoke-windows.ps1
+```
+
+详细审计与剩余缺口：`docs/STAGE12-READINESS-REPORT.md`。**当前无 Unity Editor，未实际生成或运行 EXE。**
+
+
+## Stage 13 增量：让编译后的游戏亲自证明能通关
+
+- 新增 `-echoQa` 模式，真正编译出的 Unity Windows Player 可以在无图形模式下使用**同一份 C# 剧情/存档代码**重走四结局、123 次推进，验证槽位读写和伪造证据阻断。
+- `Tools/build-windows.ps1` 将原生 Player QA 设为 Windows 分发包的**必过关卡**：不再满足于“Editor 测试通过、EXE 文件存在”。
+- `Tools/qa-native-windows.ps1` 负责运行 EXE、检查退出码和实际日志，再调用 `Tools/check-native-qa.py` 验证由 EXE 写出的 JSON。
+- `Tools/smoke-windows.ps1` 新增 `ECHO_GAME_READY` 主菜单初始化标记检查。
+- 原生 PlayMode 自动化期间不再自动注入第二个 EchoGame 对象，降低重复 UI 与 VideoPlayer 干扰。
+- 新增 8 项 Stage 13 独立离线契约测试；本环境 **17/17 Python 单元测试通过**，但不代表真实 Unity 编辑器编译/EXE 测试通过。
+
+详细进度：`docs/STAGE13-NATIVE-PLAYER-QA.md`。真实环境检测：`Builds/stage13-preflight.json`。
+
+Windows 构建和原生运行验收：
+
+```powershell
+$env:UNITY_EDITOR_PATH = 'C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe'
+.\Tools\verify-unity-import.ps1
+.\Tools\test-unity.ps1
+.\Tools\build-windows.ps1
+.\Tools\smoke-windows.ps1
+```
+
+**重要：** 本阶段尚未产生或验证 Windows EXE、Unity NUnit XML 或 `native-game-qa.json`。以上运行产物必须由实际 Unity 工具链生成。

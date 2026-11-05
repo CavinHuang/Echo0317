@@ -1,0 +1,13 @@
+{
+  "name": "Echo0317.EditModeTests",
+  "rootNamespace": "Echo0317.Tests",
+  "references": ["Echo0317.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

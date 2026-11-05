@@ -1,0 +1,134 @@
+{
+  "rules": [
+    {
+      "id": "door_identity",
+      "chapter": 1,
+      "title": "敲门者究竟是谁？",
+      "clues": [
+        "shadow",
+        "tested_password"
+      ],
+      "options": [
+        {
+          "id": "certain",
+          "text": "暗号匹配，已经能确定是林岚本人"
+        },
+        {
+          "id": "unproven",
+          "text": "暗号与影子相互矛盾；身份仍需独立核验"
+        },
+        {
+          "id": "time",
+          "text": "异常影子证明时间发生倒流"
+        }
+      ],
+      "correct": "unproven",
+      "explanation": "熟悉的暗号只能证明对方掌握了记忆；与光源相反的影子说明当前感知不可靠。不能直接把相似当作身份。",
+      "hint": "区分「拥有一段记忆」和「就是那个人」。"
+    },
+    {
+      "id": "voice_identity",
+      "chapter": 2,
+      "title": "同一声线，是否等于同一人格？",
+      "clues": [
+        "used_recording",
+        "voice_match"
+      ],
+      "options": [
+        {
+          "id": "same",
+          "text": "声线高度相似足以证明她与录音中的人完全相同"
+        },
+        {
+          "id": "fake",
+          "text": "声音吻合意味着此前录音一定伪造"
+        },
+        {
+          "id": "notproof",
+          "text": "声纹只是相似性线索，不能证明记忆与意愿的主体身份"
+        }
+      ],
+      "correct": "notproof",
+      "explanation": "录音可能被复制或重放，声纹匹配只能给出相似程度。身份需要独立来源的行为和同意证据。",
+      "hint": "录音的真实性，不等于说话者当下的身份。"
+    },
+    {
+      "id": "message_origin",
+      "chapter": 3,
+      "title": "03:22 的短信来自哪里？",
+      "clues": [
+        "receipt",
+        "cache46"
+      ],
+      "options": [
+        {
+          "id": "future",
+          "text": "发送时间较晚，证明未来的周序穿越回来"
+        },
+        {
+          "id": "queue",
+          "text": "投递队列与 46 号缓存有关；时间戳无法证明时间穿越"
+        },
+        {
+          "id": "lin",
+          "text": "号码是自己的，说明一定是林岚伪装"
+        }
+      ],
+      "correct": "queue",
+      "explanation": "尾码 46 和旧实例缓存能够关联到投递队列。系统时间戳可能由沙盒生成，不能当作真实时间穿越的证据。",
+      "hint": "追查签名和发送设备，而不是把显示时间当作物理规律。"
+    },
+    {
+      "id": "incident_record",
+      "chapter": 3,
+      "title": "事故责任能从摘要中判定吗？",
+      "clues": [
+        "public_summary",
+        "incident_proof"
+      ],
+      "options": [
+        {
+          "id": "clear",
+          "text": "解锁申请被拒，证明周序完全没有责任"
+        },
+        {
+          "id": "guilty",
+          "text": "新闻摘要已足够证明周序见死不救"
+        },
+        {
+          "id": "nuance",
+          "text": "原始日志推翻了简单指控，但无法自动免除全部责任"
+        }
+      ],
+      "correct": "nuance",
+      "explanation": "控制器拒绝过解锁请求，这是必须保留的事实，但真实决策链尚未完整呈现。二手摘要也不能作为最终责任裁定。",
+      "hint": "一个「有请求」的日志能反驳某种指控，但不能解释所有动机。"
+    },
+    {
+      "id": "independent_will",
+      "chapter": 4,
+      "title": "林岚的同意意味着什么？",
+      "clues": [
+        "protocol_read",
+        "lin_willing"
+      ],
+      "options": [
+        {
+          "id": "bargain",
+          "text": "她愿意签名，就必须原谅周序"
+        },
+        {
+          "id": "independent",
+          "text": "她可以独立阅读、拒绝或签署；合作不能替代她的自主权"
+        },
+        {
+          "id": "forced",
+          "text": "有完整协议，就可以忽略她的个人意愿"
+        }
+      ],
+      "correct": "independent",
+      "explanation": "独立核验需要明示协议、自由选择和可拒绝权。她的合作是行动上的决定，不是替周序解除情感责任。",
+      "hint": "把合作与原谅分开看。"
+    }
+  ]
+}

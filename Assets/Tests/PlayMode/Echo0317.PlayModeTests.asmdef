@@ -1,0 +1,22 @@
+{
+  "name": "Echo0317.PlayModeTests",
+  "rootNamespace": "Echo0317.Tests",
+  "references": [
+    "Echo0317.Runtime",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

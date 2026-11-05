@@ -1,0 +1,41 @@
+﻿镜头ID,章节,优先级,任务名称,时长秒,制作方法,引用角色/场景卡,状态,输出文件,逐镜头提示词文件,质检标准
+V01,1,P0,03:17短信和右手疤痕,7,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/V01.mp4,production/stage4/prompts/V01.md,疤痕在正确手位；手机无乱码；屏幕可抠像
+V02,1,P0,猫眼与逆光影子,6,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V02.mp4,production/stage4/prompts/V02.md,右耳耳钉、衣服一致；不得提前完全露脸；镜头无漂移
+V04,1,P0,三次敲门与门外衣袖,8,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V04.mp4,production/stage4/prompts/V04.md,门把手两毫米动作后期微动画，不能自己把门打开
+V03,1,P1,合照反面被改写的日期,5,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/V03.mp4,production/stage4/prompts/V03.md,不出现有脸辨识风险的近景情侣照，文字后期制作
+V23,1,P1,短信回执 46 尾码,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V23.mp4,production/stage4/prompts/V23.md,不可在第一幕提前叠加「来自46号上轮」结论
+V24,1,P1,门锁单方合并警告,6,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/V24.mp4,production/stage4/prompts/V24.md,严格按玩家操作分支剪辑；未开门路径不能出现碰锁
+V24B,1,P1,不触碰门锁的备选分支,6,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/V24B.mp4,production/stage4/prompts/V24B.md,绝无碰门锁动作；与V24的因果结果明显不同
+X01,1,P2,主角反射里的疤,5,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/X01.mp4,production/stage4/prompts/X01.md,始终不显完整主角脸
+X02,1,P2,门内掌心迟疑,4,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/X02.mp4,production/stage4/prompts/X02.md,与触门分支画面必须分开
+V05,2,P1,旧录音波形与未播完的提问,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V05.mp4,production/stage4/prompts/V05.md,旧录音与门外声音不得用不同人物脸来暗示身份
+V06,2,P1,黄色出租车第三次经过,7,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/V06.mp4,production/stage4/prompts/V06.md,车型、车灯、水花、时长完全相同；三次重复复用同一源
+V07P,2,P1,事故公开摘要空白底板,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V07P.mp4,production/stage4/prompts/V07P.md,仅公开视角；不泄露完整控制器事件；画面留白
+V07S,2,P1,原始事故记录空白底板,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V07S.mp4,production/stage4/prompts/V07S.md,只用于已取得 incident_proof 的路线；不得泄漏未获取证据
+V08,2,P1,应急门半秒闪回,4,IMAGE_TO_VIDEO,S04_CARD,待生成,assets/final/V08.mp4,production/stage4/prompts/V08.md,不得显示不存在的人工操作；不能在第二幕提前展示完整事故
+X03,2,P2,失真的旧扬声器,4,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/X03.mp4,production/stage4/prompts/X03.md,道具与V09同款
+X04,2,P2,事故档案手掌停顿,5,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/X04.mp4,production/stage4/prompts/X04.md,两种证据类型不可混淆
+V09,3,P1,46号录音机残留,8,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/V09.mp4,production/stage4/prompts/V09.md,道具标签不靠模型生成文字；46从不预见本轮动作
+V10,3,P1,双场景的渲染不一致,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V10.mp4,production/stage4/prompts/V10.md,门位置不可跳；所有异象分层VFX实现
+V12,3,P1,外部周序操控台,8,IMAGE_TO_VIDEO,ZX047_CARD;S03_CARD,待生成,assets/final/V12.mp4,production/stage4/prompts/V12.md,脸不露脸以降低人物漂移；右手疤痕一致
+V11,3,P2,停住的雨,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V11.mp4,production/stage4/prompts/V11.md,是否复用V06干净帧优先；非必要不生成AI视频
+X05,3,P2,被延迟半秒的倒影,4,IMAGE_TO_VIDEO,ZX047_CARD;S01_CARD,待生成,assets/final/X05.mp4,production/stage4/prompts/X05.md,不得在同一空间生成两个实体周序
+X06,3,P2,真实周序看见异常访问,5,IMAGE_TO_VIDEO,ZX047_CARD;S03_CARD,待生成,assets/final/X06.mp4,production/stage4/prompts/X06.md,画面能与V12无缝拼接
+X07,3,P2,46号签名比对瞬间,5,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/X07.mp4,production/stage4/prompts/X07.md,不能生成伪可读文本
+V13A,4,P0,隔门坐下与右耳摘钉（仅首次）,9,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V13A.mp4,production/stage4/prompts/V13A.md,有钉→无钉只发生一次；同一个人；不穿门
+V13B,4,P0,隔门持续对话（已摘耳钉）,9,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V13B.mp4,production/stage4/prompts/V13B.md,禁止再次摘耳钉；首尾都无耳钉
+V14,4,P1,林岚独立发言与决定,9,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V14.mp4,production/stage4/prompts/V14.md,左眉痣、右耳无耳钉、服装稳定；不能柔光美颜
+V15,4,P1,协议与交还控制权,7,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V15.mp4,production/stage4/prompts/V15.md,不渲染任何预先签名；只能表现读条款、交权
+V16,4,P1,施压后的退开,7,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V16.mp4,production/stage4/prompts/V16.md,不能把人物退开拍成受到暴力推搡
+X08,4,P2,耳钉落地,4,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/X08.mp4,production/stage4/prompts/X08.md,耳钉只能右耳摘下，之后V14与V22均无
+X09,4,P2,她独立翻阅条款,5,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/X09.mp4,production/stage4/prompts/X09.md,此镜不能出现签字
+X10,4,P2,外部周序疲惫的背影,5,IMAGE_TO_VIDEO,ZX047_CARD;S03_CARD,待生成,assets/final/X10.mp4,production/stage4/prompts/X10.md,禁止在未获得证据时说出原始事故细节
+V17A,5,P0,双签镜头 A：周序单独签名,8,POST_VFX_COMPOSITE,ZX047_CARD;S01_CARD,待生成,assets/final/V17A.mp4,production/stage4/prompts/V17A.md,只含周序单手单设备；原始权利的确认不能被 UI 预先签署
+V17B,5,P0,双签镜头 B：林岚独立签名,8,POST_VFX_COMPOSITE,LL047_CARD;S01_CARD,待生成,assets/final/V17B.mp4,production/stage4/prompts/V17B.md,不得与周序同框同时代签；林岚必须无耳钉
+V22,5,P0,E4 门外半脸与未被改写的拒绝,10,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V22.mp4,production/stage4/prompts/V22.md,不得把门打开或创造奇迹；痣和无耳钉一致
+V18,5,P1,四种结算选择,6,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/V18.mp4,production/stage4/prompts/V18.md,关键UI不可烘焙进视频，否则无法交互
+V19,5,P1,E1 被安排好的原谅,9,IMAGE_TO_VIDEO,LL047_CARD;S02_CARD,待生成,assets/final/V19.mp4,production/stage4/prompts/V19.md,这是被回滚的耳钉，与V14无耳钉形成剧情对照
+V20,5,P1,E2 假天亮与出租车重播,8,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/V20.mp4,production/stage4/prompts/V20.md,窗户构图水滴位置不变；不能生成第二辆出租车
+V21,5,P1,E3 最后一份独立录音,8,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/V21.mp4,production/stage4/prompts/V21.md,不表现实体死亡、不替林岚选择
+X11,5,P2,卷宗空白缺口,5,POST_VFX_COMPOSITE,S01_CARD,待生成,assets/final/X11.mp4,production/stage4/prompts/X11.md,不允许无证据的玩家看到隐藏原始记录
+X12,5,P2,结局共同镜头：门没有开,6,IMAGE_TO_VIDEO,S01_CARD,待生成,assets/final/X12.mp4,production/stage4/prompts/X12.md,固定门位置与V04/V13一致

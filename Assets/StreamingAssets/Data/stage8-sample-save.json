@@ -1,0 +1,15 @@
+{
+  "game": "0317-echo",
+  "format": 6,
+  "storyRevision": "v3.0",
+  "exportedAt": "2026-11-04T09:00:00.000Z",
+  "state": {
+    "node": "c1_peephole",
+    "flags": ["shadow"],
+    "history": [
+      {"from":"intro","to":"warning","choice":"继续剧情","chapter":1},
+      {"from":"warning","to":"c1_peephole","choice":"查看猫眼：确定门外是不是她","chapter":1}
+    ],
+    "endings": [], "debug": false, "attempts": []
+  }
+}

@@ -1,0 +1,447 @@
+{
+  "shots": [
+    {
+      "id": "V01",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 7,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V02",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V03",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V04",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V05",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V06",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 7,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V08",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 4,
+      "referenceIds": [
+        "S04_CARD"
+      ]
+    },
+    {
+      "id": "V09",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V10",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V11",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V12",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S03_CARD"
+      ]
+    },
+    {
+      "id": "V14",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 9,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V15",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 7,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V16",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 7,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V18",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V19",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 9,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V20",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V21",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V22",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 10,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V23",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V24",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X01",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X02",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 4,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X03",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 4,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X04",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X05",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 4,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X06",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S03_CARD"
+      ]
+    },
+    {
+      "id": "X07",
+      "chapter": 3,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X08",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 4,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "X09",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "X10",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S03_CARD"
+      ]
+    },
+    {
+      "id": "X11",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 5,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "X12",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V07P",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V07S",
+      "chapter": 2,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V13A",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 9,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V13B",
+      "chapter": 4,
+      "status": "not_generated",
+      "path": "",
+      "duration": 9,
+      "referenceIds": [
+        "LL047_CARD",
+        "S02_CARD"
+      ]
+    },
+    {
+      "id": "V17A",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "ZX047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V17B",
+      "chapter": 5,
+      "status": "not_generated",
+      "path": "",
+      "duration": 8,
+      "referenceIds": [
+        "LL047_CARD",
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V24B",
+      "chapter": 1,
+      "status": "not_generated",
+      "path": "",
+      "duration": 6,
+      "referenceIds": [
+        "S01_CARD"
+      ]
+    },
+    {
+      "id": "V07",
+      "status": "not_generated",
+      "path": "",
+      "duration": null,
+      "referenceIds": []
+    },
+    {
+      "id": "V13",
+      "status": "not_generated",
+      "path": "",
+      "duration": null,
+      "referenceIds": []
+    },
+    {
+      "id": "V17",
+      "status": "not_generated",
+      "path": "",
+      "duration": null,
+      "referenceIds": []
+    }
+  ]
+}
