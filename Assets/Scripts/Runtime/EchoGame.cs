@@ -23,6 +23,7 @@ namespace Echo0317.Runtime
         float subtitleScale = 1f;
         readonly EchoModalFlow modalFlow = new EchoModalFlow();
         int lastBackFrame = -1;
+        int lastInvestigationExitFrame = -1;
         string deductionFeedback = "";
         string focusedCaseId = "";
         string focusedEvidenceId = "";
@@ -311,6 +312,7 @@ namespace Echo0317.Runtime
         {
             if (!investigating) return;
             investigating = false;
+            lastInvestigationExitFrame = Time.frameCount;
             // Restore CanvasGroup selectability BEFORE attempting to give the
             // previous narrative button its gamepad/keyboard focus back.
             ui.SetInvestigationInputLocked(false);
@@ -884,6 +886,10 @@ namespace Echo0317.Runtime
             if(Time.unscaledTime-lastCaptionTick>.12f){lastCaptionTick=Time.unscaledTime;UpdateCaption();}
             if(Input.GetKeyDown(KeyCode.Escape))
             {
+                // StandaloneInputModule may send Cancel before Update observes
+                // this same key. Do not close the investigation and then open
+                // the pause menu from ONE Escape/B press.
+                if (lastInvestigationExitFrame == Time.frameCount) return;
                 if (investigating) StopSceneInvestigation(); else HandleBack();
                 return;
             }
