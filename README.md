@@ -1,3 +1,15 @@
+# 《03:17 · 回声》Stage 20｜视频跳过竞态修复与播放快捷键
+
+游戏中按 **R 重播当前镜头**、**K 跳过当前影片画面（不跳过剧情）**。影片准备中跳过现在会取消待解码请求，不会被迟到首帧重新启动；镜头切换与设置菜单保留暂停状态，旧影片回调不再干扰新镜头。与 Stage 19 的剧情回顾 **L** 快捷键兼容。
+
+- [Stage 20 实现、测试与真实验收范围](docs/STAGE20-PLAYBACK-CONTROLS.md)
+- [独立 C# 播放生命周期源码](Assets/Scripts/Core/EchoPlaybackState.cs)
+- [Unity 原生双解码器修复](Assets/Scripts/Runtime/EchoVideoDirector.cs)
+
+**构建边界：** GitHub .NET 8 CoreHost 可真实编译/执行播放状态与剧情代码；Unity Editor / PlayMode 和 Windows EXE 仍需要 Unity 合法激活，尚不能宣称通过原生影片与音效实测。
+
+---
+
 # 《03:17 · 回声》Stage 19｜原生剧情回顾与选择日志
 
 **新增可玩的 Unity 原生交互源码**：游戏 HUD「回顾」按钮、快捷键 **L**、暂停菜单入口、当前轮回的对白与真实选择记录、12 条/页浏览。所有记录从已验证的存档路径实时重建；回溯/读档不会泄露废弃的剧情分支。已增加 .NET 8 CoreHost 与 Unity EditMode / PlayMode 对应测试。
