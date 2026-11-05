@@ -1,0 +1,4 @@
+Echo0317 hosted Windows x64 Alpha verification request
+requested=2026-11-05
+profile=internal
+expected=Unity 6.3 C# tests + Windows x64 EXE + native QA
