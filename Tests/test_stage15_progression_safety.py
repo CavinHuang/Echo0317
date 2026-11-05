@@ -83,8 +83,11 @@ class Stage15GameSafety(unittest.TestCase):
         game=(ROOT/'Assets/Scripts/Runtime/EchoGame.cs').read_text()
         self.assertIn('deductionFeedback = success ?',game)
         self.assertIn('ui.AddModalText(deductionFeedback);',game)
+        # Stage 22 uses a single-case interactive board, not the old
+        # five-rule list. Display the answer feedback before clue pinning and
+        # before the three hypothesis buttons so it is visible at the top.
         self.assertLess(game.index('ui.AddModalText(deductionFeedback);'),
-                        game.index('ui.AddModalText("两份证据，一个判断"'))
+                        game.index('ui.AddModalText("线索槽 ①'))
 
     def test_stage15_unity_playmode_covers_actual_buttons(self):
         test=(ROOT/'Assets/Tests/PlayMode/EchoStage15InteractionTests.cs').read_text()
