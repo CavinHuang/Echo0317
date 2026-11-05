@@ -2,9 +2,6 @@ name: Hosted Unity Windows Alpha - real EXE and native QA
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'ci/trigger-unity-alpha.txt'
 
 permissions:
   contents: read
@@ -76,7 +73,7 @@ jobs:
           testMode: All
           coverageEnabled: false
       - name: Upload real Unity test output
-        if: always()
+        if: ${{ always() && steps.unitytests.outputs.artifactsPath != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: echo0317-unity-tests
