@@ -56,10 +56,14 @@ class Stage16WindowsAlpha(unittest.TestCase):
 
     def test_done_or_skipped_film_does_not_auto_replay_after_modal_close(self):
         video = (ROOT / 'Assets/Scripts/Runtime/EchoVideoDirector.cs').read_text()
-        self.assertIn('bool activeFinished;', video)
-        self.assertIn('activeFinished = true; OnEnded?.Invoke();', video)
-        self.assertIn('if (!activeFinished && active >= 0 && players[active].isPrepared)', video)
-        self.assertIn('if (active >= 0 && !activeFinished)', video)
+        # Stage 20 moves film completion into the actual C# state machine,
+        # compiled and executed by the .NET CoreHost. Modal close may only
+        # resume a visible, unfinished current clip.
+        self.assertIn('readonly EchoPlaybackState playback', video)
+        self.assertIn('playback.Complete(playback.Generation)', video)
+        self.assertIn('if (HasActiveVideo && players[active].isPrepared)', video)
+        self.assertIn('if (!playback.Skip()) return;', video)
+        self.assertIn('active = -1; // Show the story artwork', video)
         game = (ROOT / 'Assets/Scripts/Runtime/EchoGame.cs').read_text()
         menu = game.split('void ReturnToMenu()', 1)[1].split('void CloseModal()', 1)[0]
         self.assertNotIn('CloseModal();', menu)
