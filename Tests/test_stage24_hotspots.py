@@ -72,6 +72,10 @@ class HotspotRuntimeContract(unittest.TestCase):
                   'notice-repeat','notice-updated','inspect-result'):
             self.assertIn(s,art+visual)
         self.assertIn('class EchoHotspotVisual',visual)
+        # Hotspots need the actual frozen film frame visible beneath them.
+        self.assertIn('new Color(.015f,.035f,.052f,.27f)', visual)
+        self.assertIn('new Color(.055f,.077f,.10f,.06f)', visual)
+        self.assertIn('new Color(.09f,.135f,.17f,.97f)', visual)
         self.assertIn('ICancelHandler',self.source("Assets/Scripts/UI/EchoGameUI.cs"))
 
     def test_native_editor_tests_exist_but_cannot_pass_without_a_license(self):
