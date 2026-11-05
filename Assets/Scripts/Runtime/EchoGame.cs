@@ -428,7 +428,8 @@ namespace Echo0317.Runtime
                 pinnedEvidence.Clear();
                 deductionFeedback = "";
             }
-            if (page == "evidence" && modalFlow.Current != "evidence")
+            if (page == "evidence" && modalFlow.Current != "evidence" &&
+                modalFlow.Current != "journal")
                 focusedEvidenceId = "";
             modalFlow.Open(page);
             ui.SetModal(true);
