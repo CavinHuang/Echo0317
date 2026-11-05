@@ -16,12 +16,14 @@ namespace Echo0317.Runtime
         EchoSaves saves;
         EchoPreferences preferences;
         EchoGameUI ui;
+        EchoInvestigationOverlay investigationOverlay;
         EchoVideoDirector video;
         GameProgress state;
-        bool playing, paused, captionsEnabled = true, muted, fullscreen = true;
+        bool playing, paused, investigating, captionsEnabled = true, muted, fullscreen = true;
         float subtitleScale = 1f;
         readonly EchoModalFlow modalFlow = new EchoModalFlow();
         int lastBackFrame = -1;
+        int lastInvestigationExitFrame = -1;
         string deductionFeedback = "";
         string focusedCaseId = "";
         string focusedEvidenceId = "";
@@ -59,6 +61,7 @@ namespace Echo0317.Runtime
                 // Missing StreamingAssets must never leave a blank game window.
                 ui = new EchoGameUI();
                 catalog = GameCatalog.LoadFromStreamingAssets();
+                investigationOverlay = new EchoInvestigationOverlay(ui);
                 saves = EchoSaves.OpenDefault(catalog);
                 preferences = EchoPreferences.OpenDefault();
                 captionsEnabled = preferences.Current.captionsEnabled;
@@ -151,6 +154,7 @@ namespace Echo0317.Runtime
         }
         void NewGame()
         {
+            StopSceneInvestigation(false);
             var previous = state?.endings ?? Array.Empty<string>();
             ui.SetModal(false); modalFlow.Reset();
             video.Halt(); ui.HideDiscovery(); discoveryUntil = 0f;
@@ -180,6 +184,7 @@ namespace Echo0317.Runtime
         }
         void ReturnToMenu()
         {
+            StopSceneInvestigation(false);
             // Returning to the menu must not Resume() the last film for one frame.
             ui.SetModal(false); modalFlow.Reset(); playing = false; paused = false;
             video.Halt(); video.SetSceneArt("S01"); ui.HideDiscovery(); discoveryUntil = 0f;
@@ -266,8 +271,59 @@ namespace Echo0317.Runtime
             if (n.clip == "V17" && state.node != "c5_sign") return "V15";
             return n.clip;
         }
+        void BeginSceneInvestigation()
+        {
+            if (!playing || paused || investigating || ui.Modal.activeSelf) return;
+            var hotspots = EchoHotspotInvestigation.Visible(catalog, state);
+            if (hotspots.Length == 0) return;
+            investigating = true;
+            video.Pause();
+            ui.SetInvestigationInputLocked(true);
+            investigationOverlay.Show(hotspots, state, null, false, false,
+                InspectSceneHotspot, () => StopSceneInvestigation());
+        }
+
+        void InspectSceneHotspot(string id)
+        {
+            if (!investigating || !playing || paused || ui.Modal.activeSelf) return;
+            var hotspots = EchoHotspotInvestigation.Visible(catalog, state);
+            var spot = hotspots.FirstOrDefault(h => h.id == id);
+            if (spot == null) return;
+            try
+            {
+                bool wasInspected = EchoHotspotInvestigation.IsInspected(state, spot);
+                var inspected = EchoHotspotInvestigation.Inspect(catalog, state, id);
+                state = inspected;
+                if (!wasInspected) Persist();
+                bool verified = EchoHotspotInvestigation.IsEvidenceVerified(catalog, state, id);
+                ui.PlayDossierSound(wasInspected ? EchoDossierCue.Reject : EchoDossierCue.Pin, muted);
+                investigationOverlay.Show(hotspots, state, id, !wasInspected, verified,
+                    InspectSceneHotspot, () => StopSceneInvestigation());
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Echo0317] Investigation rejected: " + e.Message);
+                ui.ShowDiscovery("调查记录未保存：" + e.Message);
+                discoveryUntil = Time.unscaledTime + 5f;
+            }
+        }
+
+        void StopSceneInvestigation(bool resumeFilm = true)
+        {
+            if (!investigating) return;
+            investigating = false;
+            lastInvestigationExitFrame = Time.frameCount;
+            // Restore CanvasGroup selectability BEFORE attempting to give the
+            // previous narrative button its gamepad/keyboard focus back.
+            ui.SetInvestigationInputLocked(false);
+            investigationOverlay.Hide();
+            if (resumeFilm && playing && !paused && !ui.Modal.activeSelf)
+                video.Resume();
+        }
+
         void Render()
         {
+            StopSceneInvestigation(false);
             var n = catalog.Nodes[state.node];
             ui.Chapter.text = "第 " + n.chapterIndex + " 幕  /  " + catalog.ChapterName(n.chapterIndex);
             ui.Clock.text = n.clock ?? "03:17";
@@ -298,6 +354,13 @@ namespace Echo0317.Runtime
                     if (!usable) label += "    [条件未满足]";
                     ui.AddChoice(label, () => Choose(n.id, choice), usable);
                 }
+                var sceneHotspots = EchoHotspotInvestigation.Visible(catalog, state);
+                if (sceneHotspots.Length > 0)
+                {
+                    int alreadySeen = sceneHotspots.Count(h => EchoHotspotInvestigation.IsInspected(state, h));
+                    ui.AddChoice("现场调查  H  ·  已检查 " + alreadySeen +
+                        " / " + sceneHotspots.Length, BeginSceneInvestigation);
+                }
                 var cases = EchoInvestigation.VisibleCases(catalog, state).Count(r => r.Ready && !r.Solved);
                 if (cases > 0) ui.AddChoice("打开证据推理 · 有 " + cases + " 道可解谜题", () => Open("cases"));
             }
@@ -307,7 +370,7 @@ namespace Echo0317.Runtime
         }
         void Choose(string expectedNode, StoryChoice choice)
         {
-            if (!playing || paused || ui.Modal.activeSelf || expectedNode != state.node) return;
+            if (!playing || paused || investigating || ui.Modal.activeSelf || expectedNode != state.node) return;
             try
             {
                 var before = new HashSet<string>(state.flags);
@@ -332,6 +395,7 @@ namespace Echo0317.Runtime
         void Open(string page)
         {
             if (ui == null || state == null) return;
+            if (investigating) StopSceneInvestigation(false);
             // Investigation and save panels pause the film so users cannot miss
             // dialogue while reading long notes or editing a save slot.
             if (playing && !paused) { paused = true; video.Pause(); }
@@ -820,8 +884,18 @@ namespace Echo0317.Runtime
                 discoveryUntil = 0f;
             }
             if(Time.unscaledTime-lastCaptionTick>.12f){lastCaptionTick=Time.unscaledTime;UpdateCaption();}
-            if(Input.GetKeyDown(KeyCode.Escape)) { HandleBack(); return; }
+            if(Input.GetKeyDown(KeyCode.Escape))
+            {
+                // StandaloneInputModule may send Cancel before Update observes
+                // this same key. Do not close the investigation and then open
+                // the pause menu from ONE Escape/B press.
+                if (lastInvestigationExitFrame == Time.frameCount) return;
+                if (investigating) StopSceneInvestigation(); else HandleBack();
+                return;
+            }
+            if (investigating) return;
             if(!playing || paused || ui.Modal.activeSelf) return;
+            if(Input.GetKeyDown(KeyCode.H)){BeginSceneInvestigation();return;}
             if(Input.GetKeyDown(KeyCode.Tab)){Open("evidence");return;}
             if(Input.GetKeyDown(KeyCode.L)){historyPage=0;Open("history");return;}
             // Replay/skip are video-only and never advance or mutate story progress.

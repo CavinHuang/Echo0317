@@ -198,6 +198,16 @@ namespace Echo0317.UI
                 }
             }
         }
+        // The investigation overlay is a sibling of Game in the Canvas.
+        // It must own the gamepad focus and block buttons behind the film HUD.
+        public void SetInvestigationInputLocked(bool locked)
+        {
+            gameInput.interactable = !locked;
+            gameInput.blocksRaycasts = !locked;
+            menuInput.interactable = !locked;
+            menuInput.blocksRaycasts = !locked;
+        }
+
         public void SetSubtitleOptions(bool enabled, float scale)
         {
             Subtitle.fontSize = Mathf.RoundToInt(26f * Mathf.Clamp(scale, 1f, 1.5f));

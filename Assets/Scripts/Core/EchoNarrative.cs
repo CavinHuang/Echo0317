@@ -14,6 +14,8 @@ namespace Echo0317.Core
         public string[] endings = Array.Empty<string>();
         public bool debug;
         public Attempt[] attempts = Array.Empty<Attempt>();
+        // Optional additive save field; previous format-6 saves load with an empty array.
+        public HotspotVisit[] inspections = Array.Empty<HotspotVisit>();
     }
     [Serializable] public class SaveEnvelope
     {
@@ -120,8 +122,10 @@ namespace Echo0317.Core
                 if (r.correct == a.answer) solved.Add(a.rule);
                 prior = a.at;
             }
+            var inspections = EchoHotspotInvestigation.Validate(g, canonical, raw.inspections);
             return new GameProgress { node = result.Node, flags = result.Flags, history = canonical, endings = endings,
-                attempts = attempts.Select(a => new Attempt { rule = a.rule, answer = a.answer, at = a.at }).ToArray(), debug = raw.debug };
+                attempts = attempts.Select(a => new Attempt { rule = a.rule, answer = a.answer, at = a.at }).ToArray(),
+                inspections = inspections, debug = raw.debug };
         }
         public static GameProgress Advance(GameCatalog g, GameProgress progress, StoryChoice choice)
         {
@@ -143,6 +147,7 @@ namespace Echo0317.Core
             if (stepIndex < 0 || stepIndex > p.history.Length) throw new InvalidOperationException("回溯点无效");
             p.history = p.history.Take(stepIndex).ToArray();
             p.attempts = p.attempts.Where(a => a.at <= stepIndex).ToArray();
+            p.inspections = p.inspections.Where(v => v.at <= stepIndex).ToArray();
             p.node = Trace(g, p.history).Node;
             return Normalize(g, p);
         }

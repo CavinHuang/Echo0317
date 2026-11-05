@@ -1,3 +1,22 @@
+# 《03:17 · 回声》Stage 24｜镜头内可点击调查与生成素材接入
+
+**实际 Unity 交互新增**：23 个跨序章/第一至第三幕的画面热点；在有调查对象的场景按 **H** 或点击「现场调查」暂停影片，使用鼠标、键盘或手柄检查物体。热区显示默认/选中/已调查三态和对应图标，右侧显示调查结果；Esc/B 可安全返回剧情。调查记录存入当前时间线，重复点击不会刷记录，回溯时自动撤销废弃路径，且不会伪造剧情证据。
+
+**素材已制作**：三种热点边框、调查面板、三种通知条、11 种图标，另提供原始高分辨率透明 PNG 安装包。Unity 代码直接加载 `Assets/StreamingAssets/Investigation/`，缺失图片时提供绘制回退。安装图像使用：
+
+```bash
+python Tools/install-stage24-assets.py --archive /path/to/Echo0317-Stage24-InvestigationAssets.zip --root .
+```
+
+- [Stage24 功能、素材清单及真实测试边界](docs/STAGE24-HOTSPOT-INVESTIGATION.md)
+- [场景交互数据](Assets/StreamingAssets/Data/hotspots.json)
+- [Unity 调查视觉层](Assets/Scripts/UI/EchoInvestigationOverlay.cs)
+- [防伪时间线调查逻辑](Assets/Scripts/Core/EchoHotspotInvestigation.cs)
+
+**验证边界：** GitHub Actions 可运行 C# 核心与 Python 回归；真正的 Unity Editor/PlayMode/Windows EXE 尚未执行。高分辨率 PNG 目前作为独立 ZIP 交付，尚未提交到 GitHub 仓库。
+
+---
+
 # 《03:17 · 回声》Stage 23｜图形化档案卡、双槽推理板与原生操作反馈
 
 **已纳入 Unity 原生 C# 源码：** 证据列表/案件列表使用程序绘制的原创档案卡和安全标记；双线索有可点击、可撤销的槽位；判断使用独立交互卡；推理结果与固定证据有淡入反馈，并提供遵循静音的原创合成提示音。手柄/键盘在固定线索后保持选中卡片和滚动位置。无需额外下载视觉资源，也没有将 HTML 原型当作游戏。
