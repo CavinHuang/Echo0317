@@ -53,9 +53,10 @@ namespace Echo0317.UI
             Chapter = Label("Chapter",Game.transform,"第一幕",20,White,TextAnchor.MiddleCenter,
                 new Vector2(.36f,1),new Vector2(.65f,1),new Vector2(0,-74),new Vector2(0,-20));
             Clock = Label("Time",Game.transform,"03:17",20,Gold,TextAnchor.MiddleRight,
-                new Vector2(.73f,1),new Vector2(.82f,1),new Vector2(0,-70),new Vector2(0,-18));
-            var headerButtons = Panel("HeaderButtons",Game.transform,new Vector2(1,1),new Vector2(1,1),new Vector2(-307,-77),new Vector2(-29,-17),Color.clear);
+                new Vector2(.67f,1),new Vector2(.72f,1),new Vector2(0,-70),new Vector2(0,-18));
+            var headerButtons = Panel("HeaderButtons",Game.transform,new Vector2(1,1),new Vector2(1,1),new Vector2(-440,-77),new Vector2(-29,-17),Color.clear);
             Horizontal(headerButtons,8);
+            Button("回顾",headerButtons,()=>OnHistory?.Invoke(),18, Ink(.85f));
             Button("档案",headerButtons,()=>OnArchive?.Invoke(),18, Ink(.85f));
             Button("存档",headerButtons,()=>OnSaves?.Invoke(),18, Ink(.85f));
             Button("暂停",headerButtons,()=>OnPause?.Invoke(),18, Ink(.85f));
@@ -119,7 +120,7 @@ namespace Echo0317.UI
             var modalFit=ModalList.gameObject.AddComponent<ContentSizeFitter>();modalFit.verticalFit=ContentSizeFitter.FitMode.PreferredSize;
             Modal.SetActive(false);Game.SetActive(false);
         }
-        public Action OnArchive,OnSaves,OnPause,OnContinue,OnNewGame,OnCloseModal,OnSettings;
+        public Action OnArchive,OnHistory,OnSaves,OnPause,OnContinue,OnNewGame,OnCloseModal,OnSettings;
         public void SetGameVisible(bool visible)
         {
             Game.SetActive(visible);

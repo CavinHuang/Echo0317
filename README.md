@@ -1,3 +1,15 @@
+# 《03:17 · 回声》Stage 19｜原生剧情回顾与选择日志
+
+**新增可玩的 Unity 原生交互源码**：游戏 HUD「回顾」按钮、快捷键 **L**、暂停菜单入口、当前轮回的对白与真实选择记录、12 条/页浏览。所有记录从已验证的存档路径实时重建；回溯/读档不会泄露废弃的剧情分支。已增加 .NET 8 CoreHost 与 Unity EditMode / PlayMode 对应测试。
+
+- [Stage 19 功能实现与验收边界](docs/STAGE19-DIALOGUE-HISTORY.md)
+- [核心实现](Assets/Scripts/Core/EchoDialogueHistory.cs)
+- [实际 Unity UI 接入](Assets/Scripts/Runtime/EchoGame.cs)
+
+**仍未生成 Windows EXE。** 缺少 Unity 许可证时继续做 C# 游戏功能及真实 C# CoreHost 验证；Unity Editor 测试/Windows Player 编译仍需合法 Unity 激活。
+
+---
+
 # 《03:17 · 回声》Stage 18｜Unity CI 失败回收与原生 Alpha 构建准备
 
 **GitHub 已验证：.NET 8 真正的 C# 游戏核心与剧情迁移检查成功；Unity 原生 Editor 测试因缺少 Unity 授权 Secrets 而未启动，Windows x64 EXE 仍未生成。** Stage 18 修复了测试产物上传缺少路径的二次异常、锁定 Ubuntu 24.04 和 Unity 6000.3.2f1，并添加 CI 回归测试。不把离线核心检查当作玩家实机通过。

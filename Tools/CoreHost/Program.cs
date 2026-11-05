@@ -78,6 +78,20 @@ static class Program
                             state = loaded;
                         }
                     }
+                    // Actual Unity narrative classes also drive read-only dialogue history.
+                    var newest = EchoDialogueHistory.Read(catalog, state, 0, 9);
+                    Require(newest.TotalEntries == state.history.Length + 1, "transcript length mismatch");
+                    Require(newest.Entries[^1].NodeId == state.node && newest.Entries[^1].IsCurrent,
+                        "transcript must end at the current node");
+                    var oldest = EchoDialogueHistory.Read(catalog, state, newest.MaxPage, 9);
+                    Require(oldest.Entries[0].NodeId == "intro", "transcript lost first scene");
+                    Require(oldest.Entries[0].Choice == state.history[0].choice, "transcript choice mismatch");
+                    Require(EchoDialogueHistory.Read(catalog, state, 999, 9).Page == newest.MaxPage,
+                        "transcript out-of-range page must clamp safely");
+                    var rewinded = EchoNarrative.Rewind(catalog, state, 0);
+                    var rewoundLog = EchoDialogueHistory.Read(catalog, rewinded);
+                    Require(rewoundLog.TotalEntries == 1 && rewoundLog.Entries[0].NodeId == "intro",
+                        "rewind leaks an abandoned branch into dialogue history");
                     Require(state.node == ending && state.endings.Contains(ending), "route ending mismatch");
                     endings.Add(ending);
                     store.AutoSave(state);

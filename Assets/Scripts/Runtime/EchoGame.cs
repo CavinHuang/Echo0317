@@ -23,6 +23,7 @@ namespace Echo0317.Runtime
         string deductionFeedback = "";
         float lastCaptionTick, discoveryUntil;
         bool autosaveFailed;
+        int historyPage;
         static readonly string[] EndingIds = { "ending_merge", "ending_loop", "ending_stop", "ending_audit" };
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Startup()
@@ -69,6 +70,7 @@ namespace Echo0317.Runtime
                 ui.OnNewGame = RequestNewGame;
                 ui.OnSettings = () => Open("settings");
                 ui.OnArchive = () => Open("evidence");
+                ui.OnHistory = () => { historyPage = 0; Open("history"); };
                 ui.OnSaves = () => Open("saves");
                 ui.OnPause = Pause;
                 ui.OnCloseModal = CloseModal;
@@ -144,6 +146,7 @@ namespace Echo0317.Runtime
             ui.SetModal(false); modalPage = "";
             video.Halt(); ui.HideDiscovery(); discoveryUntil = 0f;
             state = EchoNarrative.Fresh(); state.endings = previous.Distinct().ToArray();
+            historyPage = 0;
             Persist();
             Begin();
         }
@@ -292,11 +295,13 @@ namespace Echo0317.Runtime
                     ui.AddModalText("03:17 · 回声", "世界暂停了，但你留下的选择不会消失。");
                     ui.AddModalButton("继续游戏", CloseModal);
                     ui.AddModalButton("线索档案",()=>Open("evidence"));
+                    ui.AddModalButton("剧情回顾",()=>{historyPage=0;Open("history");});
                     ui.AddModalButton("存档管理",()=>Open("saves"));
                     ui.AddModalButton("设置",()=>Open("settings"));
                     ui.AddModalButton("返回主菜单",ReturnToMenu);
                     ui.ResetModalScroll();
                     return;
+                case "history": ShowHistory(); break;
                 case "evidence": ShowEvidence(); break;
                 case "cases": ShowCases(); break;
                 case "chapters": ShowChapters(); break;
@@ -309,6 +314,7 @@ namespace Echo0317.Runtime
             if (page != "settings")
             {
                 ui.AddModalText("────────────────────────────────────────");
+                if (page != "history")ui.AddModalButton("剧情回顾",()=>{historyPage=0;Open("history");});
                 if (page != "evidence")ui.AddModalButton("线索",()=>Open("evidence"));
                 if (page != "cases")ui.AddModalButton("证据推理",()=>Open("cases"));
                 if (page != "timeline")ui.AddModalButton("时间线 / 回溯",()=>Open("timeline"));
@@ -318,6 +324,32 @@ namespace Echo0317.Runtime
             }
             ui.ResetModalScroll();
         }
+        void ShowHistory()
+        {
+            // This read-only view follows the normalized current save path.
+            // Abandoned branches and unvisited nodes are never listed.
+            var page = EchoDialogueHistory.Read(catalog, state, historyPage);
+            historyPage = page.Page;
+            ui.ModalTitle.text = "剧情回顾 / DIALOGUE LOG";
+            ui.AddModalText("本轮已经历 " + page.TotalEntries + " 个场景 · 第 " +
+                (page.Page + 1) + " / " + (page.MaxPage + 1) + " 页",
+                "只显示本轮已阅读的对白与实际选择。回顾不会回溯或修改游戏进度。");
+            foreach (var entry in page.Entries)
+            {
+                string title = (entry.IsCurrent ? "● 当前场景 · " : "") +
+                    "第 " + entry.Chapter.ToString("00") + " 幕 · " + entry.Clock + " · " + entry.Title;
+                string speaker = string.IsNullOrWhiteSpace(entry.Speaker) ? "旁白" : entry.Speaker;
+                string body = speaker + "\n" + string.Join("\n", entry.Lines);
+                if (!string.IsNullOrEmpty(entry.Choice))
+                    body += "\n\n本轮选择 → " + entry.Choice;
+                ui.AddModalText(title, body);
+            }
+            if (page.HasOlder)
+                ui.AddModalButton("更早的对白", () => { historyPage++; Open("history"); });
+            if (page.HasNewer)
+                ui.AddModalButton("更新的对白", () => { historyPage--; Open("history"); });
+        }
+
         void ShowEvidence()
         {
             ui.ModalTitle.text = "线索档案 / CASE FILE";
@@ -400,6 +432,7 @@ namespace Echo0317.Runtime
             ui.HideDiscovery();
             discoveryUntil = 0f;
             state = loaded;
+            historyPage = 0;
             Persist();
             CloseModal();
             if (!playing) Begin(); else Render();
@@ -549,6 +582,7 @@ namespace Echo0317.Runtime
             }
             if(!playing || paused || ui.Modal.activeSelf) return;
             if(Input.GetKeyDown(KeyCode.Tab)){Open("evidence");return;}
+            if(Input.GetKeyDown(KeyCode.L)){historyPage=0;Open("history");return;}
             var node=catalog.Nodes[state.node];var choices=EchoNarrative.Choices(node);
             for(int i=0;i<Math.Min(9,choices.Length);i++)
             {
