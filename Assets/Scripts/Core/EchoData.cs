@@ -61,6 +61,7 @@ namespace Echo0317.Core
         public readonly CasesFile Cases;
         public readonly CaptionsFile Captions;
         public readonly ShotsFile Shots;
+        public readonly HotspotFile HotspotData;
         public readonly Dictionary<string, StoryNode> Nodes = new Dictionary<string, StoryNode>();
         public readonly Dictionary<string, DeductionRule> Rules = new Dictionary<string, DeductionRule>();
         public readonly Dictionary<string, string> Evidence = new Dictionary<string, string>();
@@ -68,13 +69,18 @@ namespace Echo0317.Core
         public readonly Dictionary<string, MediaDefinition> Media = new Dictionary<string, MediaDefinition>();
         public readonly Dictionary<string, ShotDefinition> ShotTasks = new Dictionary<string, ShotDefinition>();
         public readonly Dictionary<string, CaptionTrack> Tracks = new Dictionary<string, CaptionTrack>();
+        public readonly Dictionary<string, HotspotDefinition> Hotspots = new Dictionary<string, HotspotDefinition>();
 
-        public GameCatalog(string storyJson, string casesJson, string captionsJson, string shotsJson)
+        public GameCatalog(string storyJson, string casesJson, string captionsJson, string shotsJson, string hotspotsJson = null)
         {
             Story = JsonUtility.FromJson<StoryGraph>(storyJson);
             Cases = JsonUtility.FromJson<CasesFile>(casesJson);
             Captions = JsonUtility.FromJson<CaptionsFile>(captionsJson);
             Shots = JsonUtility.FromJson<ShotsFile>(shotsJson);
+            HotspotData = string.IsNullOrWhiteSpace(hotspotsJson) ? new HotspotFile() :
+                JsonUtility.FromJson<HotspotFile>(hotspotsJson);
+            if (HotspotData == null || HotspotData.hotspots == null)
+                throw new InvalidDataException("调查热点数据不存在");
             if (Story == null || Story.nodes == null || Story.nodes.Length == 0)
                 throw new InvalidDataException("剧情数据不存在");
             foreach (var n in Story.nodes) { if (Nodes.ContainsKey(n.id)) throw new InvalidDataException("重复节点 " + n.id); Nodes.Add(n.id, n); }
@@ -84,6 +90,17 @@ namespace Echo0317.Core
             foreach (var rule in Cases.rules) Rules.Add(rule.id, rule);
             foreach (var track in Captions.tracks) Tracks.Add(track.id, track);
             foreach (var shot in Shots.shots) ShotTasks.Add(shot.id, shot);
+            foreach (var h in HotspotData.hotspots)
+            {
+                if (h == null || string.IsNullOrWhiteSpace(h.id) || !Nodes.ContainsKey(h.node ?? "") ||
+                    (h.evidenceId != null && h.evidenceId.Length > 0 && !Evidence.ContainsKey(h.evidenceId)) ||
+                    h.x < 0f || h.y < 0f || h.w <= 0f || h.h <= 0f ||
+                    h.x + h.w > 1f || h.y + h.h > 1f ||
+                    float.IsNaN(h.x) || float.IsNaN(h.y) || float.IsNaN(h.w) || float.IsNaN(h.h) ||
+                    Hotspots.ContainsKey(h.id))
+                    throw new InvalidDataException("调查热点配置无效 " + h?.id);
+                Hotspots.Add(h.id, h);
+            }
             if (!Nodes.ContainsKey("intro")) throw new InvalidDataException("缺少 intro 起始节点");
             foreach (var n in Story.nodes)
             {
@@ -102,7 +119,9 @@ namespace Echo0317.Core
                 File.ReadAllText(Path.Combine(dir, "story.json")),
                 File.ReadAllText(Path.Combine(dir, "cases.json")),
                 File.ReadAllText(Path.Combine(dir, "captions.json")),
-                File.ReadAllText(Path.Combine(dir, "shots.json")));
+                File.ReadAllText(Path.Combine(dir, "shots.json")),
+                File.Exists(Path.Combine(dir, "hotspots.json")) ?
+                    File.ReadAllText(Path.Combine(dir, "hotspots.json")) : null);
         }
         public string EvidenceName(string id) => Evidence.TryGetValue(id, out var text) ? text : id;
         public string ChapterName(int index) => ChapterNames.TryGetValue(index.ToString(), out var value) ? value : "第" + index + "幕";
