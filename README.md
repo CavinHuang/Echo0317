@@ -1,3 +1,15 @@
+# 《03:17 · 回声》Stage 22｜调查档案与双线索推理板
+
+**游戏交互功能**：线索档案支持点击记录查看实际剧情来源；五个谜题按已到达章节解锁，玩家须从真正获得的线索中亲手选两条、固定到证据槽，正确关联后才能选择三种推断；错误配对不消耗推理次数。存档读取、回溯、新游戏会重建案卷并清理临时固定，不透露未探索剧情。
+
+- [Stage22 实际玩法、实现清单和验证边界](docs/STAGE22-INVESTIGATION-INTERACTION.md)
+- [C# 证据来源与组合校验](Assets/Scripts/Core/EchoInvestigation.cs)
+- [Unity 原生调查与推理界面接线](Assets/Scripts/Runtime/EchoGame.cs)
+
+**验收边界：** 可在 .NET 8 GitHub CI 实际编译运行共用 C# 调查核心与四结局测试；尚未运行 Unity Editor / Windows EXE，也未声称完成音画或可发行 Alpha 验收。
+
+---
+
 # 《03:17 · 回声》Stage 21｜交互、手柄焦点与字幕可读性
 
 **新增真实 Unity uGUI 游戏交互源码**：防止 Enter/Space 与 Unity Submit 重复推进剧情；Esc / 控制器 Cancel 统一退回正确的暂停或确认页面；模态打开后锁定背景按钮、恢复合法焦点并显示选中金色轮廓；设置菜单反复调整时保留当前选项。字幕新增衬底和独立持久化的 **100% / 125% / 150%** 字号，兼容旧用户设置。
