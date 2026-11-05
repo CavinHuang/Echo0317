@@ -1,3 +1,15 @@
+# 《03:17 · 回声》Stage 26｜影片与热点真正对齐的 Unity 调查界面
+
+本阶段修复了 Stage 24/25 镜头调查的核心画面错位问题：现在将**真实的、暂停中的 `VideoLayer`** 临时移入调查视窗，使用 Unity 16:9 `AspectRatioFitter` 保留影片比例；热点直接成为影片层的子元素。退出会恢复原层级和原焦点，不重启解码器。手柄/键盘方向选择使用可在 .NET 8 真实编译测试的空间最近邻算法，替代不稳定的自动焦点；ESC/B 仍防同帧重复返回。
+
+- [Stage 26 实现、测试与实机边界](docs/STAGE26-FILM-HOTSPOT-VIEWPORT.md)
+- [Unity 原生电影/热点挂载逻辑](Assets/Scripts/UI/EchoInvestigationOverlay.cs)
+- [手柄方向焦点算法](Assets/Scripts/Core/EchoHotspotNavigation.cs)
+
+现有调查 PNG 素材已经在 `Assets/StreamingAssets/Investigation/`，不需再次安装。**注意：** .NET / Python CI 不能代替 Unity 真实 PlayMode、窗口分辨率及 Windows EXE 验收。
+
+---
+
 # 《03:17 · 回声》Stage 25｜调查美术已入库 + 可回看的现场手记
 
 **可以直接拉取源码使用调查素材，无须下载额外依赖**：18 张原创透明 PNG 已优化后直接提交到 `Assets/StreamingAssets/Investigation/`，包括热点三态、调查卡、物件图标和反馈通知。镜头调查新增「现场调查手记」：从暂停菜单或线索档案查看本轮真实调查过的物件，支持分页、场景出处、已核实证据关联和 Esc/手柄分层返回。手记只读，不会绕过原来的剧情证据校验。
