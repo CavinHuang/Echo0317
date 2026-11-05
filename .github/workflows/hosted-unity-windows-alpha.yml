@@ -2,6 +2,9 @@ name: Hosted Unity Windows Alpha - real EXE and native QA
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'ci/trigger-unity-alpha.txt'
 
 permissions:
   contents: read
