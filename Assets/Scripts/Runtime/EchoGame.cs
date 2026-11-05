@@ -229,7 +229,7 @@ namespace Echo0317.Runtime
             video.SetSceneArt(SceneFor(n));
             video.Show(clip);
             bool isApproved = catalog.ShotTasks.TryGetValue(clip, out var record) && record.status == "approved_final";
-            ui.FilmStatus.text = "镜头 " + clip + "  ·  " + (isApproved ? "已批准影片" : "占位 / 动态分镜") + "   |   当前第 " + n.chapterIndex + " 幕";
+            ui.FilmStatus.text = "镜头 " + clip + "  ·  " + (isApproved ? "已批准影片" : "占位 / 动态分镜") + "   |   R 重播 / K 跳过画面";
             ui.Hint.text = n.ending ? "结局解锁 · 你可以回溯以探寻其他选择" : "选择会改变后来你能掌握的证据与可能的结局";
             ui.ClearChoices();
             if (n.ending)
@@ -552,8 +552,8 @@ namespace Echo0317.Runtime
             ui.AddModalButton("显示模式：" + (fullscreen ? "无边框全屏" : "窗口"), () => {
                 fullscreen = !fullscreen; ApplyDisplaySettings(); PersistPreferences(); Open("settings");
             });
-            ui.AddModalButton("重播当前影片镜头",()=>{CloseModal();video.Replay();});
-            ui.AddModalButton("视频跳过（仅跳过画面，不跳过剧情）",()=>{video.Skip();CloseModal();});
+            ui.AddModalButton("重播当前影片镜头（R）",()=>{video.Replay();CloseModal();});
+            ui.AddModalButton("跳过当前影片画面（K，不跳剧情）",()=>{video.Skip();CloseModal();});
             ui.AddModalButton("返回主菜单",ReturnToMenu);
         }
         void UpdateCaption()
@@ -583,6 +583,9 @@ namespace Echo0317.Runtime
             if(!playing || paused || ui.Modal.activeSelf) return;
             if(Input.GetKeyDown(KeyCode.Tab)){Open("evidence");return;}
             if(Input.GetKeyDown(KeyCode.L)){historyPage=0;Open("history");return;}
+            // Replay/skip are video-only and never advance or mutate story progress.
+            if(Input.GetKeyDown(KeyCode.R)){video.Replay();return;}
+            if(Input.GetKeyDown(KeyCode.K)){video.Skip();UpdateCaption();return;}
             var node=catalog.Nodes[state.node];var choices=EchoNarrative.Choices(node);
             for(int i=0;i<Math.Min(9,choices.Length);i++)
             {
