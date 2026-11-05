@@ -1,0 +1,22 @@
+name: Unity migration data parity
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  story-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python Tests/test_export.py
+      - name: Verify native release asset mappings and existing video codecs
+        run: python Tests/test_release_assets.py
+      - name: Check internal-alpha release gate (does not require final films)
+        run: python Tests/test_release_gate.py --profile internal
+      - name: Verify C# source layout (not a compilation test)
+        run: |
+          python -m pip install pygments
+          python Tests/test_csharp_structure.py
