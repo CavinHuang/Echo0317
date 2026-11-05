@@ -29,11 +29,22 @@ static class Program
             var hotspotFresh = EchoNarrative.Fresh();
             Require(EchoHotspotInvestigation.Visible(catalog, hotspotFresh).Length == 2,
                 "opening film hotspot targets are unavailable");
+            var emptyJournal = EchoInvestigationJournal.Read(catalog, hotspotFresh);
+            Require(emptyJournal.TotalEntries == 0 && emptyJournal.Page == 0 &&
+                emptyJournal.Entries.Length == 0, "new loop must have an empty observation notebook");
             var hotVisited = EchoHotspotInvestigation.Inspect(catalog, hotspotFresh, "intro_phone");
             Require(hotVisited.inspections.Length == 1 && hotVisited.flags.Length == 0 &&
                 hotVisited.history.Length == 0, "an observation must not create story flags or steps");
             Require(EchoHotspotInvestigation.Inspect(catalog, hotVisited, "intro_phone").inspections.Length == 1,
                 "repeated inspection must not duplicate records");
+            var journal = EchoInvestigationJournal.Read(catalog, hotVisited);
+            Require(journal.TotalEntries == 1 && journal.Entries.Length == 1 &&
+                journal.Entries[0].Id == "intro_phone" && journal.Entries[0].Step == 0 &&
+                journal.Entries[0].Chapter == 1 && !journal.Entries[0].EvidenceVerified,
+                "observed-only hotspot should appear in read-only journal");
+            Require(EchoInvestigationJournal.Read(catalog, hotVisited, -500, 999).Page == 0 &&
+                EchoInvestigationJournal.Read(catalog, hotVisited, 999, 1).Page == 0,
+                "journal pagination must be safely clamped");
             Require(!EchoHotspotInvestigation.IsEvidenceVerified(catalog, hotVisited, "intro_phone"),
                 "a hotspot must not pretend an unearned receipt is verified");
             bool rejectedForgedHotspot = false;
@@ -57,7 +68,14 @@ static class Program
             var inspectedPeephole = EchoHotspotInvestigation.Inspect(catalog, atPeephole, "peephole_shadow");
             Require(EchoHotspotInvestigation.IsEvidenceVerified(catalog, inspectedPeephole, "peephole_shadow"),
                 "actual evidence should be recognized in the hotspot inspection");
+            var verifiedJournal = EchoInvestigationJournal.Read(catalog, inspectedPeephole);
+            Require(verifiedJournal.TotalEntries == 1 &&
+                verifiedJournal.Entries[0].EvidenceVerified &&
+                verifiedJournal.Entries[0].EvidenceId == "shadow",
+                "journal must acknowledge evidence earned by the actual story choice");
             var rewoundHotspots = EchoNarrative.Rewind(catalog, inspectedPeephole, 0);
+            Require(EchoInvestigationJournal.Read(catalog, rewoundHotspots).TotalEntries == 0,
+                "abandoned journal observations leaked through rewind");
             Require(rewoundHotspots.inspections.Length == 0 &&
                 EchoHotspotInvestigation.Visible(catalog, rewoundHotspots).Length == 2,
                 "rewind kept visits or revealed an abandoned scene");
