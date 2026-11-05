@@ -42,7 +42,7 @@ jobs:
   unity-tests:
     name: Real Unity 6.3 EditMode and PlayMode
     needs: core-csharp
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
@@ -70,21 +70,23 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
+          unityVersion: 6000.3.2f1
           testMode: All
           coverageEnabled: false
+          artifactsPath: unity-test-artifacts
       - name: Upload real Unity test output
-        if: ${{ always() && steps.unitytests.outputs.artifactsPath != '' }}
+        if: ${{ always() && steps.unitytests.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4
         with:
           name: echo0317-unity-tests
-          path: ${{ steps.unitytests.outputs.artifactsPath }}
+          path: unity-test-artifacts
           if-no-files-found: warn
           retention-days: 14
 
   unity-build:
     name: Compile Windows x64 game with Unity
     needs: unity-tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -97,6 +99,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: StandaloneWindows64
+          unityVersion: 6000.3.2f1
           buildMethod: Echo0317.Editor.EchoBuild.BuildWindowsHosted
           buildsPath: build
       - name: Require true Unity Windows build outputs
