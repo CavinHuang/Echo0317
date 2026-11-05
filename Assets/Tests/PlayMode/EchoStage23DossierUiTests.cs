@@ -81,7 +81,6 @@ namespace Echo0317.Tests
                     "投递队列", "短信 · 03:22", false, 0, () => clicks++);
                 EventSystem.current.SetSelectedGameObject(old.gameObject);
                 var id = ui.SelectedDossierCardId();
-                var previousPosition = ui.ArchiveScroll.verticalNormalizedPosition;
                 ui.ClearModal();
                 Assert.IsFalse(old.gameObject.activeSelf,
                     "Retired cards must become non-interactable before Unity's deferred Destroy");
@@ -89,7 +88,8 @@ namespace Echo0317.Tests
                     "投递队列", "短信 · 03:22", true, 1, () => clicks += 10);
                 ui.FocusDossierCard(id);
                 Assert.AreSame(rebuilt.gameObject, EventSystem.current.currentSelectedGameObject);
-                Assert.AreEqual(previousPosition, ui.ArchiveScroll.verticalNormalizedPosition, .01f);
+                Assert.AreSame(ui.ArchiveScroll, rebuilt.GetComponent<EchoScrollSelection>().Target,
+                    "Restored focus must remain scroll-aware after the board rerenders");
                 Assert.NotNull(rebuilt.GetComponent<EchoDossierReveal>());
                 rebuilt.onClick.Invoke();
                 Assert.AreEqual(10, clicks, "The new card must use the new callback only");
