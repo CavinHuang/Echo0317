@@ -293,6 +293,9 @@ namespace Echo0317.Runtime
             if (hotspots.Length == 0) return;
             investigating = true;
             video.Pause();
+            // Use the actual 16:9 VideoLayer as the coordinate parent of the
+            // hotspots. No full-screen scaling or fake duplicate film is used.
+            investigationOverlay.MountFilm(ui.VideoLayer);
             ui.SetInvestigationInputLocked(true);
             investigationOverlay.Show(hotspots, state, null, false, false,
                 InspectSceneHotspot, () => StopSceneInvestigation());

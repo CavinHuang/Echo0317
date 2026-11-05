@@ -24,6 +24,31 @@ static class Program
             var catalog = GameCatalog.LoadFromStreamingAssets();
             Require(catalog.Nodes.Count == 55 && catalog.Rules.Count == 5, "narrative catalog missing");
             Require(catalog.Hotspots.Count == 23, "investigation hotspot catalog missing");
+            // Stage 26: real Unity hotspot navigation decisions are compiled
+            // and checked here on the same authored source coordinates.
+            var introNavigation = EchoHotspotInvestigation.Visible(catalog, EchoNarrative.Fresh());
+            Require(EchoHotspotNavigation.Next(introNavigation, "intro_phone",
+                    EchoHotspotDirection.Right) == "intro_photo",
+                "gamepad right must move to the adjacent opening hotspot");
+            Require(EchoHotspotNavigation.Next(introNavigation, "intro_photo",
+                    EchoHotspotDirection.Left) == "intro_phone",
+                "gamepad left must return to the original hotspot");
+            Require(EchoHotspotNavigation.Next(introNavigation, "missing",
+                    EchoHotspotDirection.Right) == null &&
+                    EchoHotspotNavigation.Next(Array.Empty<HotspotDefinition>(), "intro_phone",
+                    EchoHotspotDirection.Right) == null,
+                "unknown or empty hotspot navigation must safely fail");
+            var deterministic = new [] {
+                new HotspotDefinition { id="center", x=0.2f, y=0.3f, w=0.1f, h=0.1f },
+                new HotspotDefinition { id="right-b", x=0.6f, y=0.3f, w=0.1f, h=0.1f },
+                new HotspotDefinition { id="right-a", x=0.6f, y=0.3f, w=0.1f, h=0.1f }
+            };
+            Require(EchoHotspotNavigation.Next(deterministic, "center",
+                    EchoHotspotDirection.Right) == "right-a" &&
+                    EchoHotspotNavigation.Next(deterministic, "center",
+                    EchoHotspotDirection.Left) == null,
+                "directional navigation must be stable on tied or missing neighbors");
+
             // Play and save actual spotlight observations without bypassing
             // canonical narrative flags; no Unity license or test shims for rules.
             var hotspotFresh = EchoNarrative.Fresh();
