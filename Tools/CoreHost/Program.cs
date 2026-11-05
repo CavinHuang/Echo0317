@@ -103,6 +103,40 @@ static class Program
             var forged = EchoNarrative.Fresh();
             forged.flags = new[] { "incident_proof", "cache46", "source_verified" };
             Require(EchoNarrative.Normalize(catalog, forged).flags.Length == 0, "forged evidence accepted");
+            // Playback request lifecycles are the same C# class used by the
+            // Unity VideoDirector. Stale completion, pending-skip and modal
+            // pause behavior are all validated without Unity activation.
+            var playback = new EchoPlaybackState();
+            Require(!playback.Skip(), "skip must not succeed before a clip is selected");
+            Require(playback.Request("V01"), "first clip request");
+            int firstToken = playback.Generation;
+            Require(playback.CanPresent(firstToken), "first request not presentable");
+            Require(!playback.Request("V01"), "repeat request must not restart a continuous plate");
+            Require(playback.Request("V02"), "second clip request");
+            int pendingToken = playback.Generation;
+            Require(!playback.CanPresent(firstToken), "stale request was not invalidated");
+            Require(playback.Skip(), "skip must work during pending preparation");
+            Require(playback.IsFinished && playback.ClipId == "V02", "skipped clip identity lost");
+            Require(!playback.CanPresent(pendingToken), "skipped pending frame may become visible");
+            Require(!playback.Skip(), "duplicate skip must not emit another completion");
+            Require(!playback.Request("V02"), "skipped same clip must not silently autoplay");
+            Require(playback.Request("V02", true), "explicit replay must restart a skipped clip");
+            int replayToken = playback.Generation;
+            Require(playback.CanPresent(replayToken), "replay must allow new frames");
+            playback.Pause();
+            Require(playback.Request("V03") && playback.IsPaused,
+                "shot switch inside a modal must preserve pause");
+            int thirdToken = playback.Generation;
+            Require(!playback.Complete(replayToken), "old replay must not finish the latest shot");
+            Require(playback.Complete(thirdToken), "current shot should finish once");
+            Require(!playback.Complete(thirdToken) && !playback.Skip(),
+                "finished shot must never complete twice or skip again");
+            playback.Resume();
+            Require(!playback.IsPaused, "resume did not unpause");
+            playback.Halt();
+            Require(playback.ClipId == "" && !playback.IsFinished && !playback.IsPaused,
+                "leaving a scene must discard all video state");
+            Require(!playback.CanPresent(thirdToken), "halted scene accepted a stale frame");
             var optionRoot = Path.Combine(Path.GetTempPath(), "echo-pref-" + Guid.NewGuid().ToString("N"));
             try
             {
