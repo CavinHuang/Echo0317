@@ -1,0 +1,55 @@
+name: Unity native Windows verification
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'internal=alpha with previs; release=all mandatory approved films required'
+        type: choice
+        options: [internal, release]
+        default: internal
+        required: true
+# Requires an explicitly configured, self-hosted Windows runner with Unity 6.3 LTS,
+# Windows Build Support and a valid license. No credentials are committed.
+jobs:
+  native-build:
+    runs-on: [self-hosted, Windows, X64, unity-6-3]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Structural checks and exported story verification
+        shell: pwsh
+        run: |
+          python Tests/test_export.py
+          python Tests/test_release_assets.py
+          python Tests/test_release_gate.py --profile internal
+      - name: Unity Editor tests and Windows standalone build
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: |
+          if ('${{ inputs.profile }}' -eq 'release') {
+            .\Tools\build-windows.ps1 -Release
+          } else {
+            .\Tools\build-alpha-windows.ps1 -SkipInteractiveSmoke
+          }
+      - name: Upload logs and test reports even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-native-verification
+          path: |
+            Builds/*.log
+            Builds/*-results.xml
+            Builds/unity-import-verification.json
+            Builds/native-game-qa.json
+            Builds/stage16-alpha-evidence.json
+            Builds/player-smoke-success.json
+          if-no-files-found: warn
+      - name: Upload verified Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo0317-windows-x64
+          path: |
+            Builds/Echo0317-Windows-x64-*.zip
+            Builds/windows-build-sha256.txt
+          if-no-files-found: error
