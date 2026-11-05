@@ -478,13 +478,19 @@ namespace Echo0317.Runtime
             {
                 pinnedEvidence.Remove(clueId);
                 deductionFeedback = "";
+                ui.PlayDossierSound(EchoDossierCue.Pin, muted);
             }
             else if (pinnedEvidence.Count < 2)
             {
                 pinnedEvidence.Add(clueId);
                 deductionFeedback = "";
+                ui.PlayDossierSound(EchoDossierCue.Pin, muted);
             }
-            else deductionFeedback = "两个槽位已满。先取消一条已固定的线索，再选择其他证据。";
+            else
+            {
+                deductionFeedback = "两个槽位已满。先取消一条已固定的线索，再选择其他证据。";
+                ui.PlayDossierSound(EchoDossierCue.Reject, muted);
+            }
             Open("cases");
         }
 
@@ -603,12 +609,14 @@ namespace Echo0317.Runtime
                 Persist();
                 var rule = catalog.Rules[ruleId];
                 bool success = rule.correct == answer;
+                ui.PlayDossierSound(success ? EchoDossierCue.Solve : EchoDossierCue.Reject, muted);
                 deductionFeedback = success ? "推理成立：" + rule.explanation :
                     "推理尚不成立：" + rule.hint;
                 Open("cases");
             }
             catch (Exception e)
             {
+                ui.PlayDossierSound(EchoDossierCue.Reject, muted);
                 deductionFeedback = "无法提交：" + e.Message;
                 Open("cases");
             }
