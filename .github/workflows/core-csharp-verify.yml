@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
 jobs:
   dotnet-core:
+    env:
+      PYTHONUTF8: '1'
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
