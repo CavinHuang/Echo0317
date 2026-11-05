@@ -48,8 +48,8 @@ namespace Echo0317.Tests
                 Assert.AreEqual("intro_phone",
                     EventSystem.current.currentSelectedGameObject
                         .GetComponent<EchoHotspotVisual>().HotspotId);
-                overlay.Hide();
                 ui.SetInvestigationInputLocked(false);
+                overlay.Hide();
                 Assert.IsFalse(overlay.Root.activeSelf);
                 Assert.IsTrue(ui.Game.GetComponent<CanvasGroup>().interactable);
                 Assert.AreSame(previous,EventSystem.current.currentSelectedGameObject);
