@@ -3,3 +3,5 @@ archive=echo0317-all.tar.xz
 sha256=b83c87f96dd6dd033ef7bf96a75ef82323af8b6e159a881f867d986a0070898c
 files=149
 chunks=11
+
+retry=fixed-workflow-2026-11-05
