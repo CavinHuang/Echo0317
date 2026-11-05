@@ -27,10 +27,12 @@ namespace Echo0317.Runtime
         string deductionFeedback = "";
         string focusedCaseId = "";
         string focusedEvidenceId = "";
+        string focusedJournalKey = "";
+        string journalReturnPage = "evidence";
         readonly List<string> pinnedEvidence = new List<string>();
         float lastCaptionTick, discoveryUntil;
         bool autosaveFailed;
-        int historyPage;
+        int historyPage, journalPage;
         static readonly string[] EndingIds = { "ending_merge", "ending_loop", "ending_stop", "ending_audit" };
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Startup()
@@ -194,6 +196,9 @@ namespace Echo0317.Runtime
         {
             focusedCaseId = "";
             focusedEvidenceId = "";
+            focusedJournalKey = "";
+            journalReturnPage = "evidence";
+            journalPage = 0;
             pinnedEvidence.Clear();
             deductionFeedback = "";
         }
@@ -222,6 +227,16 @@ namespace Echo0317.Runtime
                 pinnedEvidence.Clear();
                 deductionFeedback = "";
                 Open("cases");
+                return;
+            }
+            if (modalFlow.Current == "journal")
+            {
+                if (!string.IsNullOrEmpty(focusedJournalKey))
+                {
+                    focusedJournalKey = "";
+                    Open("journal");
+                }
+                else Open(journalReturnPage);
                 return;
             }
             if (modalFlow.Current == "evidence" && !string.IsNullOrEmpty(focusedEvidenceId))
@@ -425,6 +440,10 @@ namespace Echo0317.Runtime
                     ui.AddModalText("03:17 · 回声", "世界暂停了，但你留下的选择不会消失。");
                     ui.AddModalButton("继续游戏", CloseModal);
                     ui.AddModalButton("线索档案",()=>Open("evidence"));
+                    ui.AddModalButton("现场调查手记",()=>{
+                        journalReturnPage="pause"; journalPage=0;
+                        focusedJournalKey=""; Open("journal");
+                    });
                     ui.AddModalButton("剧情回顾",()=>{historyPage=0;Open("history");});
                     ui.AddModalButton("存档管理",()=>Open("saves"));
                     ui.AddModalButton("设置",()=>Open("settings"));
@@ -433,6 +452,7 @@ namespace Echo0317.Runtime
                     return;
                 case "history": ShowHistory(); break;
                 case "evidence": ShowEvidence(); break;
+                case "journal": ShowJournal(); break;
                 case "cases": ShowCases(); break;
                 case "chapters": ShowChapters(); break;
                 case "timeline": ShowTimeline(); break;
@@ -446,6 +466,7 @@ namespace Echo0317.Runtime
                 ui.AddModalText("────────────────────────────────────────");
                 if (page != "history")ui.AddModalButton("剧情回顾",()=>{historyPage=0;Open("history");});
                 if (page != "evidence")ui.AddModalButton("线索",()=>Open("evidence"));
+                if (page != "journal")ui.AddModalButton("调查手记",()=>{journalReturnPage=page; journalPage=0;focusedJournalKey="";Open("journal");});
                 if (page != "cases")ui.AddModalButton("证据推理",()=>Open("cases"));
                 if (page != "timeline")ui.AddModalButton("时间线 / 回溯",()=>Open("timeline"));
                 if (page != "chapters")ui.AddModalButton("章节复盘",()=>Open("chapters"));
@@ -486,6 +507,65 @@ namespace Echo0317.Runtime
                 ui.AddModalButton("更新的对白", () => { historyPage--; Open("history"); });
         }
 
+        void ShowJournal()
+        {
+            ui.ModalTitle.text = "现场调查手记 / OBSERVATIONS";
+            var page = EchoInvestigationJournal.Read(catalog, state, journalPage);
+            journalPage = page.Page;
+            if (!string.IsNullOrEmpty(focusedJournalKey))
+            {
+                var record = page.Entries.FirstOrDefault(x => x.Key == focusedJournalKey);
+                if (record != null)
+                {
+                    ui.AddModalText("现场观察 · " + record.Label,
+                        "第 " + record.Chapter + " 幕 · " + record.Clock +
+                        "\n" + record.SceneTitle + "\n\n" + record.Description);
+                    string status = record.EvidenceId.Length == 0 ?
+                        "仅记录观察；此物件不提供独立剧情证据。" :
+                        record.EvidenceVerified ?
+                            "已由合法剧情核实：" + record.EvidenceLabel :
+                            "观察已记录；对应证据尚未由剧情核实。";
+                    ui.AddModalText("证据状态", status);
+                    if (record.EvidenceVerified)
+                    {
+                        string evidenceId = record.EvidenceId;
+                        ui.AddModalButton("查看关联的正式证据", () => {
+                            focusedEvidenceId = evidenceId;
+                            Open("evidence");
+                        });
+                    }
+                    ui.AddModalButton("返回调查手记", () => {
+                        focusedJournalKey = "";
+                        Open("journal");
+                    });
+                    return;
+                }
+                focusedJournalKey = "";
+            }
+            ui.AddModalText("本轮现场观察 · " + page.TotalEntries + " 条" +
+                "  ·  第 " + (page.Page+1) + " / " + (page.MaxPage+1) + " 页",
+                "这里保存你亲自检查过的场景物件。仅显示本轮有效时间线，观察本身不产生剧情证据。");
+            if (page.TotalEntries == 0)
+                ui.AddModalText("暂无现场观察", "回到剧情，选择「现场调查」或按 H 调查可互动目标。");
+            foreach (var item in page.Entries)
+            {
+                var captured = item;
+                string source = "第 " + item.Chapter + " 幕 · " + item.Clock +
+                    (item.EvidenceVerified ? "  ·  已核实" : "  ·  观察记录");
+                ui.AddDossierCard(item.Key, "OBSERVED  /  " + source,
+                    item.Label, item.SceneTitle, false, 0, () => {
+                        focusedJournalKey = captured.Key;
+                        Open("journal");
+                    });
+            }
+            if (page.HasOlder)
+                ui.AddModalButton("更早的调查记录",()=>{journalPage++;Open("journal");});
+            if (page.HasNewer)
+                ui.AddModalButton("更新的调查记录",()=>{journalPage--;Open("journal");});
+            ui.AddModalButton("返回 " + (journalReturnPage == "pause" ? "暂停菜单" : "线索档案"),
+                () => Open(journalReturnPage));
+        }
+
         void ShowEvidence()
         {
             ui.ModalTitle.text = "调查档案 / CASE FILE";
@@ -522,6 +602,11 @@ namespace Echo0317.Runtime
                         Open("evidence");
                     });
             }
+            ui.AddModalButton("查看现场调查手记", () => {
+                journalReturnPage = "evidence";
+                journalPage = 0; focusedJournalKey = "";
+                Open("journal");
+            });
             ui.AddModalButton("进入证据推理板", () => Open("cases"));
         }
 
