@@ -51,6 +51,23 @@ namespace Echo0317.Tests
         }
 
         [Test]
+        public void SubtitleSizePersistsAndClampsWithoutChangingLegacySettings()
+        {
+            var prefs = new EchoPreferences(path);
+            prefs.Update(true, false, true, 1f, 1.5f);
+            Assert.AreEqual(1.5f, new EchoPreferences(path).Current.subtitleScale);
+            prefs.Update(true, false, true, 1f, float.NaN);
+            Assert.AreEqual(1f, prefs.Current.subtitleScale);
+            prefs.Update(true, false, true, 1f, 250f);
+            Assert.AreEqual(1.5f, new EchoPreferences(path).Current.subtitleScale);
+
+            // A previous version stored no subtitleScale at all.
+            File.WriteAllText(Path.Combine(path, "player-options.json"),
+                "{\"version\":1,\"captionsEnabled\":true,\"muted\":false,\"fullscreen\":true,\"speed\":1}");
+            Assert.AreEqual(1f, new EchoPreferences(path).Current.subtitleScale);
+        }
+
+        [Test]
         public void InvalidSpeedIsClampedBeforePersisting()
         {
             var prefs = new EchoPreferences(path);
