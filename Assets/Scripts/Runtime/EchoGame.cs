@@ -298,7 +298,7 @@ namespace Echo0317.Runtime
                     if (!usable) label += "    [条件未满足]";
                     ui.AddChoice(label, () => Choose(n.id, choice), usable);
                 }
-                var cases = catalog.Cases.rules.Count(r => r.clues.All(state.flags.Contains) && !EchoNarrative.IsSolved(catalog,state,r.id));
+                var cases = EchoInvestigation.VisibleCases(catalog, state).Count(r => r.Ready && !r.Solved);
                 if (cases > 0) ui.AddChoice("打开证据推理 · 有 " + cases + " 道可解谜题", () => Open("cases"));
             }
             UpdateCaption();
