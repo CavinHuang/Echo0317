@@ -37,13 +37,13 @@ namespace Echo0317.UI
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             var root = Surface("SceneInvestigation", ui.Canvas.transform, Vector2.zero, Vector2.one,
-                new Color(.015f,.035f,.052f,.82f));
+                new Color(.015f,.035f,.052f,.27f));
             Root = root.gameObject;
             // The image-backed stage is on the left, and the info panel is a
             // separate scroll-free reading area instead of covering the film.
             var film = Surface("InvestigationFilmStage", root,
                 new Vector2(.022f,.17f), new Vector2(.475f,.86f),
-                new Color(.055f,.077f,.10f,.23f));
+                new Color(.055f,.077f,.10f,.06f));
             HotspotArea = Surface("HotspotArea", film, Vector2.zero, Vector2.one, Color.clear);
             Title = Label("InvestigationTitle", root, "现场调查 / INVESTIGATION", 28, Gold,
                 TextAnchor.MiddleLeft, new Vector2(.035f,.89f), new Vector2(.65f,.98f), true);
