@@ -1,0 +1,28 @@
+name: Compile and execute real C# narrative core (without Unity)
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  dotnet-core:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and execute actual Unity C# core files via .NET shim
+        shell: pwsh
+        run: dotnet run --project Tools/CoreHost/Echo0317.CoreHost.csproj --configuration Release -- "$env:GITHUB_WORKSPACE"
+      - name: Install Python test dependencies
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r Tests/requirements-ci.txt
+      - name: Verify story data and release content contract
+        shell: pwsh
+        run: |
+          python -m unittest discover -s Tests -p 'test_*.py' -q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
