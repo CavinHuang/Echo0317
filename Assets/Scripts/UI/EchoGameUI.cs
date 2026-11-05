@@ -296,6 +296,7 @@ namespace Echo0317.UI
             image.color = pinned ? new Color(1f, .93f, .78f, 1f) : Color.white;
             rt.gameObject.AddComponent<LayoutElement>().preferredHeight = 136;
             var button = rt.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
             button.onClick.AddListener(() => action?.Invoke());
             var colors = button.colors;
             colors.highlightedColor = new Color(1f, .96f, .87f, 1f);
@@ -348,6 +349,7 @@ namespace Echo0317.UI
             rt.GetComponent<Image>().sprite=EchoDossierArtwork.Slot;
             rt.gameObject.AddComponent<LayoutElement>().flexibleWidth=1f;
             var button=rt.gameObject.AddComponent<Button>();
+            button.targetGraphic=rt.GetComponent<Image>();
             button.interactable=occupied;
             button.onClick.AddListener(()=>remove?.Invoke());
             if (occupied)
@@ -372,6 +374,7 @@ namespace Echo0317.UI
                 Vector2.zero,Vector2.zero,Rgb(41,56,66));
             rt.gameObject.AddComponent<LayoutElement>().preferredHeight=106;
             var button=rt.gameObject.AddComponent<Button>();
+            button.targetGraphic=rt.GetComponent<Image>();
             button.onClick.AddListener(()=>action?.Invoke());
             rt.gameObject.AddComponent<EchoFocusOutline>();
             rt.gameObject.AddComponent<EchoScrollSelection>().Target=ArchiveScroll;
