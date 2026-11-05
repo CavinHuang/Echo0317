@@ -5,3 +5,5 @@ files=149
 chunks=11
 
 retry=fixed-workflow-2026-11-05
+
+retry=exclude-workflow-paths
