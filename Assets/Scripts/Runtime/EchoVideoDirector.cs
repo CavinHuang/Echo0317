@@ -23,21 +23,18 @@ namespace Echo0317.Runtime
         Coroutine prepareRoutine;
         readonly bool[] firstFrameReady = new bool[2];
         readonly string[] pendingErrors = new string[2];
-        bool userPaused;
-        // A finished/skipped film must not restart when an archive modal closes.
-        bool activeFinished;
-        string selectedClip = "";
-        int requestGeneration;
+        // Single authoritative intent for requests, decoder completion, skips and pauses.
+        readonly EchoPlaybackState playback = new EchoPlaybackState();
         GameCatalog catalog;
         public Action<string> OnClipChange;
         public Action<string> OnClipError;
         public Action OnEnded;
-        public string CurrentClip => selectedClip;
-        public bool HasActiveVideo => active >= 0;
+        public string CurrentClip => playback.ClipId;
+        public bool HasActiveVideo => active >= 0 && preparingSlot < 0 && !playback.IsFinished;
         public bool IsPreparing => preparingSlot >= 0;
-        public bool IsPaused => userPaused;
-        public bool IsPlaying => active >= 0 && players[active].isPlaying;
-        public double CurrentTime => active >= 0 ? players[active].time : 0;
+        public bool IsPaused => playback.IsPaused;
+        public bool IsPlaying => HasActiveVideo && players[active].isPlaying;
+        public double CurrentTime => HasActiveVideo ? players[active].time : 0;
         public float Speed { get; private set; } = 1f;
         public bool Muted { get; private set; } = false;
         public RawImage StaticImage { get; private set; }
@@ -71,13 +68,22 @@ namespace Echo0317.Runtime
                         pendingErrors[preparingSlot] = message;
                         return;
                     }
-                    if (active >= 0 && p == players[active])
+                    // Errors from the old held plate must not cancel the
+                    // newer shot that is currently preparing.
+                    if (preparingSlot < 0 && active >= 0 && p == players[active] &&
+                        !playback.IsFinished)
+                        FailCurrentRequest(message);
+                };
+                player.loopPointReached += (p) => {
+                    // An obsolete plate can complete while a replacement is
+                    // being decoded. Never fire a completion for that old shot.
+                    if (preparingSlot < 0 && active >= 0 && p == players[active] &&
+                        playback.Complete(playback.Generation))
                     {
-                        OnClipError?.Invoke(message);
-                        Halt();
+                        players[active].Pause();
+                        OnEnded?.Invoke();
                     }
                 };
-                player.loopPointReached += (p) => { if (active >= 0 && p == players[active]) { activeFinished = true; OnEnded?.Invoke(); } };
                 targets[i] = new RenderTexture(1280, 720, 0, RenderTextureFormat.ARGB32) { name = "EchoFilm-" + i };
                 targets[i].Create();
                 player.targetTexture = targets[i];
@@ -138,21 +144,23 @@ namespace Echo0317.Runtime
             }
             preparingSlot = -1;
         }
-        public void Show(string clipId)
+        public void Show(string clipId) => ShowClip(clipId, false);
+
+        void ShowClip(string clipId, bool forceReplay)
         {
-            if (selectedClip == clipId) return; // Story nodes can share one continuous plate.
-            ++requestGeneration;
+            if (string.IsNullOrWhiteSpace(clipId)) { Halt(); return; }
+            if (!playback.Request(clipId, forceReplay)) return;
+            // Cancel previous frame-ready continuations before queuing a new
+            // decoder. Request generation is checked again before presentation.
             CancelPendingPreparation();
-            selectedClip = clipId;
-            activeFinished = false;
+            int generation = playback.Generation;
             var file = Resolve(clipId);
             OnClipChange?.Invoke(clipId);
             if (file == null) { Halt(); return; }
-            // Hold the previous shot's last visible frame without carrying its
-            // dialogue into the next story node during decoder preparation.
+            // Old shot is held visually but silent while the new shot prepares.
             if (active >= 0) players[active].Pause();
             preparingSlot = active == 0 ? 1 : 0;
-            prepareRoutine = StartCoroutine(PrepareAndSwitch(file, requestGeneration, preparingSlot));
+            prepareRoutine = StartCoroutine(PrepareAndSwitch(file, generation, preparingSlot));
         }
         static void ClearDecodeTarget(RenderTexture target)
         {
@@ -178,12 +186,12 @@ namespace Echo0317.Runtime
             player.Prepare();
             float elapsed = 0;
             while (!player.isPrepared && string.IsNullOrEmpty(pendingErrors[next]) &&
-                   generation == requestGeneration && elapsed < 10f)
+                   playback.CanPresent(generation) && elapsed < 10f)
             {
                 elapsed += Time.unscaledDeltaTime;
                 yield return null;
             }
-            if (generation != requestGeneration) yield break;
+            if (!playback.CanPresent(generation)) yield break;
             if (!player.isPrepared || !string.IsNullOrEmpty(pendingErrors[next]))
             {
                 FailCurrentRequest(string.IsNullOrEmpty(pendingErrors[next])
@@ -196,12 +204,12 @@ namespace Echo0317.Runtime
             player.Play();
             float firstFrameTimeout = 0;
             while (!firstFrameReady[next] && string.IsNullOrEmpty(pendingErrors[next]) &&
-                   generation == requestGeneration && firstFrameTimeout < 3f)
+                   playback.CanPresent(generation) && firstFrameTimeout < 3f)
             {
                 firstFrameTimeout += Time.unscaledDeltaTime;
                 yield return null;
             }
-            if (generation != requestGeneration) yield break;
+            if (!playback.CanPresent(generation)) yield break;
             player.sendFrameReadyEvents = false;
             if (!firstFrameReady[next] || !string.IsNullOrEmpty(pendingErrors[next]))
             {
@@ -213,11 +221,10 @@ namespace Echo0317.Runtime
             int old = active;
             if (old >= 0) players[old].Pause();
             active = next;
-            activeFinished = false;
             groups[next].alpha = 1f;
             if (old >= 0) groups[old].alpha = 0f;
             player.SetDirectAudioMute(0, Muted);
-            if (userPaused) player.Pause();
+            if (playback.IsPaused) player.Pause();
             if (preparingSlot == next)
             {
                 preparingSlot = -1;
@@ -229,10 +236,9 @@ namespace Echo0317.Runtime
             // Do not StopCoroutine() on the coroutine that is currently executing.
             // Retire the request, clear all decoder surfaces and show the existing
             // scene art while leaving narration and choices available.
-            ++requestGeneration;
+            playback.Halt();
             prepareRoutine = null;
             preparingSlot = -1;
-            selectedClip = "";
             for (int i = 0; i < players.Length; i++)
             {
                 players[i].sendFrameReadyEvents = false;
@@ -244,15 +250,35 @@ namespace Echo0317.Runtime
         }
         public void Replay()
         {
-            // Explicit replay is different from consecutive story nodes sharing a plate.
-            var shot = selectedClip;
+            // Replaying a finished or skipped clip must be an explicit new request.
+            var shot = playback.ClipId;
             if (string.IsNullOrEmpty(shot)) return;
-            selectedClip = "";
-            Show(shot);
+            ShowClip(shot, true);
         }
-        public void Pause() { userPaused = true; if (active >= 0) players[active].Pause(); }
-        public void Resume() { userPaused = false; if (!activeFinished && active >= 0 && players[active].isPrepared) players[active].Play(); }
-        public void Skip() { if (active >= 0 && !activeFinished) { activeFinished = true; players[active].Pause(); OnEnded?.Invoke(); } }
+        public void Pause()
+        {
+            playback.Pause();
+            if (active >= 0) players[active].Pause();
+        }
+        public void Resume()
+        {
+            playback.Resume();
+            if (HasActiveVideo && players[active].isPrepared) players[active].Play();
+        }
+        public void Skip()
+        {
+            // Skip applies to the requested plate, not the previous held decoder.
+            // It must also work during Prepare()/first-frame wait.
+            if (!playback.Skip()) return;
+            CancelPendingPreparation();
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i] != null) players[i].Pause();
+                if (groups[i] != null) groups[i].alpha = 0f;
+            }
+            active = -1; // Show the story artwork, not a frozen/skipped frame.
+            OnEnded?.Invoke();
+        }
         public void SetMuted(bool muted)
         {
             Muted = muted;
@@ -268,13 +294,9 @@ namespace Echo0317.Runtime
         }
         public void Halt()
         {
-            ++requestGeneration;
+            playback.Halt();
             CancelPendingPreparation();
-            // Clearing this is essential: returning to the menu and resuming the same
-            // scene must request the clip again rather than skip it as a repeat.
-            selectedClip = "";
-            activeFinished = false;
-            userPaused = false;
+            // Returning to the menu invalidates all pending video callbacks.
             for (int i = 0; i < 2; i++)
             {
                 if (players[i] != null) { players[i].sendFrameReadyEvents = false; players[i].Stop(); }
