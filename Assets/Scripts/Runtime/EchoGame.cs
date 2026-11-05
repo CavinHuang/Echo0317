@@ -311,8 +311,10 @@ namespace Echo0317.Runtime
         {
             if (!investigating) return;
             investigating = false;
-            investigationOverlay.Hide();
+            // Restore CanvasGroup selectability BEFORE attempting to give the
+            // previous narrative button its gamepad/keyboard focus back.
             ui.SetInvestigationInputLocked(false);
+            investigationOverlay.Hide();
             if (resumeFilm && playing && !paused && !ui.Modal.activeSelf)
                 video.Resume();
         }
