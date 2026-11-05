@@ -1,8 +1,18 @@
+# 《03:17 · 回声》Stage 18｜Unity CI 失败回收与原生 Alpha 构建准备
+
+**GitHub 已验证：.NET 8 真正的 C# 游戏核心与剧情迁移检查成功；Unity 原生 Editor 测试因缺少 Unity 授权 Secrets 而未启动，Windows x64 EXE 仍未生成。** Stage 18 修复了测试产物上传缺少路径的二次异常、锁定 Ubuntu 24.04 和 Unity 6000.3.2f1，并添加 CI 回归测试。不把离线核心检查当作玩家实机通过。
+
+- [Stage 18 最新证据、授权配置与下一步](docs/STAGE18-REAL-UNITY-CI-RECOVERY.md)
+- [已确认的 Unity CI 失败日志](https://github.com/CavinHuang/Echo0317/actions/runs/41966421571)
+- [托管 Unity Windows Alpha 手动运行入口](https://github.com/CavinHuang/Echo0317/actions/workflows/hosted-unity-windows-alpha.yml)
+
+---
+
 # 《03:17 · 回声》Stage 17｜GitHub 托管 Unity Windows Alpha 构建通路
 
 **Windows EXE 尚未生成。** 本轮加入了无需用户自备 Windows Runner 的 GitHub Hosted Unity CI：真实 .NET 8 C# 编译 → Unity EditMode/PlayMode → GameCI Windows x64 Unity 编译 → Windows Runner 启动生成的 EXE 并进行原生四结局自检 → 校验、打包。
 
-**当前 42 项离线测试通过；真实 Unity 编译和 Windows EXE 未执行。** 此路线需要私有 GitHub 仓库与 Unity 授权 Secrets。请勿在对话中发送任何许可证、Unity 密码或账号令牌。
+**当前 42 项离线测试通过；真实 Unity 编译和 Windows EXE 未执行。** 此路线需要 Unity 授权 Secrets；仓库可为 public，但不得提交凭据。请勿在对话中发送任何许可证、Unity 密码或账号令牌。
 
 - [Stage 17 完整说明、测试与阻塞](docs/STAGE17-HOSTED-UNITY-ALPHA.md)
 - [GitHub Actions 真正的托管 Unity 构建工作流](.github/workflows/hosted-unity-windows-alpha.yml)

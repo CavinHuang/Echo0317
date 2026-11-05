@@ -18,12 +18,30 @@ class HostedUnityAlphaTests(unittest.TestCase):
         jobs = data['jobs']
         self.assertEqual(['core-csharp', 'unity-tests', 'unity-build', 'native-player-qa'], list(jobs))
         self.assertEqual('windows-2022', jobs['core-csharp']['runs-on'])
-        self.assertEqual('ubuntu-latest', jobs['unity-build']['runs-on'])
+        self.assertEqual('ubuntu-24.04', jobs['unity-build']['runs-on'])
         actions = [s['uses'] for job in jobs.values() for s in job['steps'] if 'uses' in s]
         self.assertIn('game-ci/unity-test-runner@v4', actions)
         self.assertIn('game-ci/unity-builder@v4', actions)
         self.assertIn('actions/download-artifact@v4', actions)
         self.assertIn('actions/upload-artifact@v4', actions)
+
+    def test_unity_version_and_failure_artifacts_are_deterministic(self):
+        data = yaml.safe_load(WORKFLOW.read_text())
+        jobs = data['jobs']
+        tests = jobs['unity-tests']
+        build = jobs['unity-build']
+        self.assertEqual('ubuntu-24.04', tests['runs-on'])
+        self.assertEqual('ubuntu-24.04', build['runs-on'])
+        test_step = next(s for s in tests['steps'] if s.get('uses') == 'game-ci/unity-test-runner@v4')
+        builder_step = next(s for s in build['steps'] if s.get('uses') == 'game-ci/unity-builder@v4')
+        for step in (test_step, builder_step):
+            self.assertEqual('6000.3.2f1', str(step['with']['unityVersion']))
+        self.assertEqual('unity-test-artifacts', test_step['with']['artifactsPath'])
+        upload_step = next(s for s in tests['steps'] if s.get('uses') == 'actions/upload-artifact@v4')
+        self.assertEqual('unity-test-artifacts', upload_step['with']['path'])
+        self.assertIn("steps.unitytests.outcome != 'skipped'", upload_step['if'])
+        self.assertEqual('warn', upload_step['with']['if-no-files-found'])
+
 
     def test_build_waits_for_editor_tests_and_native_player_verifies_real_exe(self):
         data = yaml.safe_load(WORKFLOW.read_text())
