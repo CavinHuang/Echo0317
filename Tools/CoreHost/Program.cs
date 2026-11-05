@@ -23,6 +23,49 @@ static class Program
             var data = Path.Combine(Application.streamingAssetsPath, "Data");
             var catalog = GameCatalog.LoadFromStreamingAssets();
             Require(catalog.Nodes.Count == 55 && catalog.Rules.Count == 5, "narrative catalog missing");
+            Require(catalog.Hotspots.Count == 23, "investigation hotspot catalog missing");
+            // Play and save actual spotlight observations without bypassing
+            // canonical narrative flags; no Unity license or test shims for rules.
+            var hotspotFresh = EchoNarrative.Fresh();
+            Require(EchoHotspotInvestigation.Visible(catalog, hotspotFresh).Length == 2,
+                "opening film hotspot targets are unavailable");
+            var hotVisited = EchoHotspotInvestigation.Inspect(catalog, hotspotFresh, "intro_phone");
+            Require(hotVisited.inspections.Length == 1 && hotVisited.flags.Length == 0 &&
+                hotVisited.history.Length == 0, "an observation must not create story flags or steps");
+            Require(EchoHotspotInvestigation.Inspect(catalog, hotVisited, "intro_phone").inspections.Length == 1,
+                "repeated inspection must not duplicate records");
+            Require(!EchoHotspotInvestigation.IsEvidenceVerified(catalog, hotVisited, "intro_phone"),
+                "a hotspot must not pretend an unearned receipt is verified");
+            bool rejectedForgedHotspot = false;
+            try
+            {
+                EchoNarrative.Normalize(catalog, new GameProgress {
+                    node = "intro", inspections = new[] {
+                        new HotspotVisit { id = "c2_wave_match", node = "c2_voice", at = 0 }
+                    }
+                });
+            }
+            catch (InvalidOperationException) { rejectedForgedHotspot = true; }
+            Require(rejectedForgedHotspot, "forged future hotspot visit was accepted");
+            var warningChoice = EchoNarrative.Choices(catalog.Nodes["intro"]).Single();
+            var atWarning = EchoNarrative.Advance(catalog, hotspotFresh, warningChoice);
+            var peepholeChoice = EchoNarrative.Choices(catalog.Nodes["warning"])
+                .Single(c => c.to == "c1_peephole");
+            var atPeephole = EchoNarrative.Advance(catalog, atWarning, peepholeChoice);
+            Require(atPeephole.flags.Contains("shadow"),
+                "story evidence should be granted by the actual choice");
+            var inspectedPeephole = EchoHotspotInvestigation.Inspect(catalog, atPeephole, "peephole_shadow");
+            Require(EchoHotspotInvestigation.IsEvidenceVerified(catalog, inspectedPeephole, "peephole_shadow"),
+                "actual evidence should be recognized in the hotspot inspection");
+            var rewoundHotspots = EchoNarrative.Rewind(catalog, inspectedPeephole, 0);
+            Require(rewoundHotspots.inspections.Length == 0 &&
+                EchoHotspotInvestigation.Visible(catalog, rewoundHotspots).Length == 2,
+                "rewind kept visits or revealed an abandoned scene");
+            var evidenceAfterInspect = EchoInvestigation.Archive(catalog, inspectedPeephole);
+            Require(evidenceAfterInspect.Any(e => e.Id == "shadow") &&
+                inspectedPeephole.flags.SequenceEqual(atPeephole.flags),
+                "inspecting should not alter the existing evidence archive");
+
             var pending = new Queue<(string node, HashSet<string> flags)>();
             pending.Enqueue(("intro", new HashSet<string>()));
             var seen = new HashSet<string>();
