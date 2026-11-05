@@ -92,6 +92,51 @@ static class Program
                     var rewoundLog = EchoDialogueHistory.Read(catalog, rewinded);
                     Require(rewoundLog.TotalEntries == 1 && rewoundLog.Entries[0].NodeId == "intro",
                         "rewind leaks an abandoned branch into dialogue history");
+                    // Investigation uses the exact same validated timeline/flags as Unity.
+                    var archive = EchoInvestigation.Archive(catalog, state);
+                    Require(new HashSet<string>(archive.Select(x => x.Id)).SetEquals(
+                        state.flags.Where(catalog.Evidence.ContainsKey)),
+                        "archive must show exactly the evidence acquired on this route");
+                    Require(archive.All(e => e.AcquiredAtStep >= 0 &&
+                        e.AcquiredAtStep <= state.history.Length &&
+                        catalog.Nodes.Values.Any(n => n.title == e.SceneTitle)),
+                        "evidence provenance must come from a visited scene");
+                    var reachedCases = EchoInvestigation.VisibleCases(catalog, state);
+                    int reachedChapter = catalog.Nodes[state.node].chapterIndex;
+                    Require(reachedCases.All(c => c.Chapter <= reachedChapter),
+                        "future case titles were revealed before their chapters");
+                    foreach (var caseCard in reachedCases)
+                    {
+                        var rule = catalog.Rules[caseCard.Id];
+                        bool ready = rule.clues.All(state.flags.Contains);
+                        Require(caseCard.Ready == ready &&
+                            caseCard.AcquiredCount == rule.clues.Count(state.flags.Contains),
+                            "caseboard availability does not match actual evidence");
+                        if (!ready) continue;
+                        Require(EchoInvestigation.PairMatches(catalog, state, rule.id, rule.clues),
+                            "real available two-clue pair must unlock its case");
+                        Require(!EchoInvestigation.PairMatches(catalog, state, rule.id,
+                            new[] { rule.clues[0], rule.clues[0] }),
+                            "duplicate pinned clue must not unlock a deduction");
+                        var unrelated = archive.FirstOrDefault(a => !rule.clues.Contains(a.Id));
+                        if (unrelated != null)
+                            Require(!EchoInvestigation.PairMatches(catalog, state, rule.id,
+                                new[] { rule.clues[0], unrelated.Id }),
+                                "wrong but acquired clues must not unlock a deduction");
+                        // A correct answer still goes through the existing actual
+                        // deduction/save logic, never a parallel game state.
+                        var deductionState = EchoNarrative.RecordDeduction(
+                            catalog, state, rule.id, rule.correct);
+                        Require(EchoNarrative.IsSolved(catalog, deductionState, rule.id) &&
+                            !EchoInvestigation.PairMatches(catalog, deductionState, rule.id, rule.clues),
+                            "already-solved case must not be answered again");
+                    }
+                    var discarded = EchoNarrative.Rewind(catalog, state, 0);
+                    Require(EchoInvestigation.Archive(catalog, discarded).Length == 0,
+                        "rewind leaked evidence from the discarded timeline");
+                    Require(!EchoInvestigation.PairMatches(catalog, discarded,
+                        "door_identity", new[] { "shadow", "tested_password" }),
+                        "rewound evidence must not be usable for deduction");
                     Require(state.node == ending && state.endings.Contains(ending), "route ending mismatch");
                     endings.Add(ending);
                     store.AutoSave(state);
