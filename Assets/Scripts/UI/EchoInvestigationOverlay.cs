@@ -18,6 +18,16 @@ namespace Echo0317.UI
     {
         public readonly GameObject Root;
         public readonly RectTransform HotspotArea;
+        public readonly RectTransform FilmStage;
+        RectTransform mountedFilm;
+        Transform originalFilmParent;
+        int originalFilmSibling;
+        Vector2 originalFilmAnchorMin, originalFilmAnchorMax;
+        Vector2 originalFilmOffsetMin, originalFilmOffsetMax;
+        AspectRatioFitter fitter;
+        AspectRatioFitter.AspectMode originalAspectMode;
+        float originalAspectRatio;
+        public bool HasMountedFilm => mountedFilm != null;
         public readonly Text Title, Summary, ResultTitle, ResultBody, ResultStatus;
         readonly Image resultArt, notificationArt;
         readonly EchoInvestigationArt assets = new EchoInvestigationArt();
@@ -44,6 +54,7 @@ namespace Echo0317.UI
             var film = Surface("InvestigationFilmStage", root,
                 new Vector2(.022f,.17f), new Vector2(.475f,.86f),
                 new Color(.055f,.077f,.10f,.06f));
+            FilmStage = film;
             HotspotArea = Surface("HotspotArea", film, Vector2.zero, Vector2.one, Color.clear);
             Title = Label("InvestigationTitle", root, "现场调查 / INVESTIGATION", 28, Gold,
                 TextAnchor.MiddleLeft, new Vector2(.035f,.89f), new Vector2(.65f,.98f), true);
@@ -69,6 +80,7 @@ namespace Echo0317.UI
             notificationArt.color=new Color(1f,1f,1f,.85f);
             exitButton = ActionButton("返回剧情 / ESC", root,
                 new Vector2(.49f,.035f),new Vector2(.78f,.13f),null);
+            exitButton.gameObject.AddComponent<EchoCancelAction>();
             Root.SetActive(false);
         }
 
@@ -110,6 +122,73 @@ namespace Echo0317.UI
             return button;
         }
 
+        /// <summary>
+        /// Move the ACTUAL full-screen video layer into the investigation film
+        /// viewport. The image/decoder and the hotspot coordinates now share
+        /// one RectTransform, including letterboxing on ultrawide windows.
+        /// This never duplicates or restarts the active VideoPlayer.
+        /// </summary>
+        public void MountFilm(RectTransform videoLayer)
+        {
+            if(videoLayer==null)throw new ArgumentNullException(nameof(videoLayer));
+            if(mountedFilm==videoLayer)return;
+            if(mountedFilm!=null)UnmountFilm();
+            originalFilmParent=videoLayer.parent;
+            originalFilmSibling=videoLayer.GetSiblingIndex();
+            originalFilmAnchorMin=videoLayer.anchorMin;
+            originalFilmAnchorMax=videoLayer.anchorMax;
+            originalFilmOffsetMin=videoLayer.offsetMin;
+            originalFilmOffsetMax=videoLayer.offsetMax;
+            mountedFilm=videoLayer;
+            fitter=videoLayer.GetComponent<AspectRatioFitter>();
+            if(fitter==null)fitter=videoLayer.gameObject.AddComponent<AspectRatioFitter>();
+            originalAspectMode=fitter.aspectMode;
+            originalAspectRatio=fitter.aspectRatio;
+            mountedFilm.SetParent(FilmStage,false);
+            mountedFilm.anchorMin=Vector2.zero;
+            mountedFilm.anchorMax=Vector2.one;
+            mountedFilm.offsetMin=Vector2.zero;
+            mountedFilm.offsetMax=Vector2.zero;
+            fitter.aspectRatio=16f/9f; // Native video RenderTexture is 1280 x 720
+            fitter.aspectMode=AspectRatioFitter.AspectMode.FitInParent;
+            mountedFilm.SetAsFirstSibling();
+            // HotspotArea shares the *fitted* video rect, not the larger
+            // letterboxed container and not the full screen.
+            HotspotArea.SetParent(mountedFilm,false);
+            HotspotArea.anchorMin=Vector2.zero;
+            HotspotArea.anchorMax=Vector2.one;
+            HotspotArea.offsetMin=Vector2.zero;
+            HotspotArea.offsetMax=Vector2.zero;
+            HotspotArea.SetAsLastSibling();
+        }
+
+        void UnmountFilm()
+        {
+            if(mountedFilm==null)return;
+            // Retire hotspot buttons from the film subtree before returning it
+            // to the game HUD. They remain part of the overlay, not the video.
+            HotspotArea.SetParent(FilmStage,false);
+            HotspotArea.anchorMin=Vector2.zero;
+            HotspotArea.anchorMax=Vector2.one;
+            HotspotArea.offsetMin=Vector2.zero;
+            HotspotArea.offsetMax=Vector2.zero;
+            if(fitter!=null)
+            {
+                fitter.aspectMode=originalAspectMode;
+                fitter.aspectRatio=originalAspectRatio;
+            }
+            mountedFilm.SetParent(originalFilmParent,false);
+            mountedFilm.anchorMin=originalFilmAnchorMin;
+            mountedFilm.anchorMax=originalFilmAnchorMax;
+            mountedFilm.offsetMin=originalFilmOffsetMin;
+            mountedFilm.offsetMax=originalFilmOffsetMax;
+            mountedFilm.SetSiblingIndex(Mathf.Clamp(originalFilmSibling,0,
+                originalFilmParent.childCount-1));
+            mountedFilm=null;
+            fitter=null;
+            originalFilmParent=null;
+        }
+
         public void Show(HotspotDefinition[] hotspots,GameProgress progress,
             string selectedId,bool newRecord,bool verified,
             Action<string> inspect,Action exit)
@@ -135,6 +214,7 @@ namespace Echo0317.UI
                 if(visited)done++;
                 AddHotspot(hotspot,visited,inspect,exit);
             }
+            ConfigureNavigation(hotspots);
             Summary.text="已检查 " + done + " / " + hotspots.Length +
                 "  ·  点击热点 / 方向键选择";
             var selected=hotspots.FirstOrDefault(h=>h.id==selectedId);
@@ -195,9 +275,44 @@ namespace Echo0317.UI
             visible.Add(visual);
         }
 
+        void ConfigureNavigation(HotspotDefinition[] hotspots)
+        {
+            var targets=visible.ToDictionary(x=>x.HotspotId,
+                x=>x.GetComponent<Button>(),StringComparer.Ordinal);
+            foreach(var widget in visible)
+            {
+                var button=widget.GetComponent<Button>();
+                var navigation=button.navigation;
+                navigation.mode=Navigation.Mode.Explicit;
+                navigation.selectOnRight=FindNav(hotspots,widget.HotspotId,
+                    EchoHotspotDirection.Right,targets);
+                navigation.selectOnLeft=FindNav(hotspots,widget.HotspotId,
+                    EchoHotspotDirection.Left,targets);
+                navigation.selectOnUp=FindNav(hotspots,widget.HotspotId,
+                    EchoHotspotDirection.Up,targets);
+                navigation.selectOnDown=FindNav(hotspots,widget.HotspotId,
+                    EchoHotspotDirection.Down,targets) ?? exitButton;
+                button.navigation=navigation;
+            }
+            var exitNavigation=exitButton.navigation;
+            exitNavigation.mode=Navigation.Mode.Explicit;
+            exitNavigation.selectOnUp=visible.Count>0?
+                visible[visible.Count-1].GetComponent<Button>():null;
+            exitButton.navigation=exitNavigation;
+            exitButton.GetComponent<EchoCancelAction>().OnBack=()=>exitButton.onClick.Invoke();
+        }
+
+        static Button FindNav(HotspotDefinition[] hotspots,string current,
+            EchoHotspotDirection direction,Dictionary<string,Button> buttons)
+        {
+            var id=EchoHotspotNavigation.Next(hotspots,current,direction);
+            return id!=null && buttons.TryGetValue(id,out var button) ? button : null;
+        }
+
         public void Hide()
         {
-            if(!Root.activeSelf)return;
+            if(!Root.activeSelf && !HasMountedFilm)return;
+            UnmountFilm();
             Root.SetActive(false);
             if(EventSystem.current==null)return;
             var previous=focusBeforeOpen;
