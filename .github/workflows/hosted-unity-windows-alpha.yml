@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   core-csharp:
+    env:
+      PYTHONUTF8: '1'
     name: Check exact Unity C# core on .NET 8
     runs-on: windows-2022
     timeout-minutes: 20
