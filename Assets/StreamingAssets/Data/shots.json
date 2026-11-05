@@ -426,21 +426,21 @@
       "id": "V07",
       "status": "not_generated",
       "path": "",
-      "duration": null,
+      "duration": 0,
       "referenceIds": []
     },
     {
       "id": "V13",
       "status": "not_generated",
       "path": "",
-      "duration": null,
+      "duration": 0,
       "referenceIds": []
     },
     {
       "id": "V17",
       "status": "not_generated",
       "path": "",
-      "duration": null,
+      "duration": 0,
       "referenceIds": []
     }
   ]
