@@ -59,7 +59,7 @@ class Stage15GameSafety(unittest.TestCase):
         self.assertIn('t.gameObject.SetActive(false); UnityEngine.Object.Destroy(t.gameObject)',ui)
         self.assertIn('() => Choose(n.id, choice)',game)
         self.assertIn('expectedNode != state.node',game)
-        self.assertIn('if (!playing || paused || ui.Modal.activeSelf',game)
+        self.assertIn('if (!playing || paused || investigating || ui.Modal.activeSelf',game)
         self.assertIn('ui.ResetStoryScroll()',game)
         self.assertIn('EchoScrollSelection',ui)
 
