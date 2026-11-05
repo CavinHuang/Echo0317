@@ -2,7 +2,7 @@ name: Import full Unity game project
 on:
   push:
     paths:
-      - 'bootstrap/READY'
+      - bootstrap/READY
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Check 11 uploaded binary chunks and SHA-256
+      - name: Check uploaded binary chunks and archive hash
         shell: bash
         run: |
           set -euo pipefail
@@ -24,8 +24,8 @@ jobs:
           echo 'b83c87f96dd6dd033ef7bf96a75ef82323af8b6e159a881f867d986a0070898c  /tmp/echo0317-all.tar.xz' | sha256sum -c
           test "$(stat -c%s /tmp/echo0317-all.tar.xz)" -eq 5449828
           tar -tJf /tmp/echo0317-all.tar.xz > /tmp/echo0317-members.txt
-          grep -q '^Assets/Scripts/Core/EchoNarrative.cs
-      - name: Unpack full 149-file project to working tree
+          grep -q 'Assets/Scripts/Core/EchoNarrative.cs' /tmp/echo0317-members.txt
+      - name: Unpack and verify complete project
         shell: bash
         run: |
           set -euo pipefail
@@ -36,7 +36,7 @@ jobs:
           test -s Assets/Scripts/Runtime/EchoGame.cs
           test -s .github/workflows/hosted-unity-windows-alpha.yml
           test -s ProjectSettings/ProjectVersion.txt
-      - name: Commit unpacked Unity project to main
+      - name: Commit source to repository default branch
         shell: bash
         run: |
           set -euo pipefail
@@ -45,7 +45,7 @@ jobs:
           git rm -r -q bootstrap/chunks bootstrap/READY
           git add -A
           git add -f Tools/CoreHost/Echo0317.CoreHost.csproj
-          git commit -m 'feat: import complete Echo0317 Unity project with media, story and CI'
+          git commit -m 'feat: import complete Echo0317 Unity project with previews, story and CI'
           git push origin HEAD:main
       - uses: actions/setup-dotnet@v4
         with:
@@ -53,43 +53,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile actual C# core and run narrative tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          dotnet run --project Tools/CoreHost/Echo0317.CoreHost.csproj --configuration Release -- "$GITHUB_WORKSPACE"
-          python -m pip install --disable-pip-version-check -r Tests/requirements-ci.txt
-          python -m unittest discover -s Tests -p 'test_*.py' -q
- /tmp/echo0317-members.txt
-      - name: Unpack full 149-file project to working tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          tar -xJf /tmp/echo0317-all.tar.xz
-          test -s Assets/StreamingAssets/Data/story.json
-          test -s Assets/StreamingAssets/Media/Previs/V01.mp4
-          test -s Assets/StreamingAssets/Art/S01.png
-          test -s Assets/Scripts/Runtime/EchoGame.cs
-          test -s .github/workflows/hosted-unity-windows-alpha.yml
-          test -s ProjectSettings/ProjectVersion.txt
-      - name: Commit unpacked Unity project to main
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm -r -q bootstrap/chunks bootstrap/READY
-          git add -A
-          git add -f Tools/CoreHost/Echo0317.CoreHost.csproj
-          git commit -m 'feat: import complete Echo0317 Unity project with media, story and CI'
-          git push origin HEAD:main
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Compile actual C# core and run narrative tests
+      - name: Compile core CSharp and verify story
         shell: bash
         run: |
           set -euo pipefail
