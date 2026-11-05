@@ -11,6 +11,7 @@
     <Compile Include="../../Assets/Scripts/Core/EchoData.cs" Link="Core/EchoData.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoNarrative.cs" Link="Core/EchoNarrative.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoDialogueHistory.cs" Link="Core/EchoDialogueHistory.cs" />
+    <Compile Include="../../Assets/Scripts/Core/EchoPlaybackState.cs" Link="Core/EchoPlaybackState.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoSaves.cs" Link="Core/EchoSaves.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoPreferences.cs" Link="Core/EchoPreferences.cs" />
     <Compile Include="UnityShim.cs" />
