@@ -15,6 +15,7 @@ namespace Echo0317.UI
         public readonly ScrollRect StoryScroll, ArchiveScroll;
         public readonly GameObject DiscoveryCard, CaptionBackdrop;
         readonly CanvasGroup gameInput, menuInput;
+        readonly EchoDossierSound dossierSound;
         GameObject focusBeforeModal;
         public readonly Text DiscoveryText, SaveStatus;
         public readonly Text Chapter, Clock, FilmStatus, Title, Speaker, Body, Subtitle, ModalTitle, Hint, MenuProgress;
@@ -34,6 +35,7 @@ namespace Echo0317.UI
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var root = new GameObject("Echo UI",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
             Canvas = root.GetComponent<Canvas>(); Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            dossierSound = root.AddComponent<EchoDossierSound>();
             var scaler = root.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1600, 900); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
@@ -383,6 +385,8 @@ namespace Echo0317.UI
                  !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
                 EventSystem.current.SetSelectedGameObject(button.gameObject);
         }
+
+        public void PlayDossierSound(EchoDossierCue cue,bool muted) => dossierSound.Play(cue,muted);
 
         public void AddBoardFeedback(string title,string explanation,bool success)
         {
