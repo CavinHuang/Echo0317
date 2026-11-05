@@ -1,3 +1,16 @@
+# 《03:17 · 回声》Stage 25｜调查美术已入库 + 可回看的现场手记
+
+**可以直接拉取源码使用调查素材，无须下载额外依赖**：18 张原创透明 PNG 已优化后直接提交到 `Assets/StreamingAssets/Investigation/`，包括热点三态、调查卡、物件图标和反馈通知。镜头调查新增「现场调查手记」：从暂停菜单或线索档案查看本轮真实调查过的物件，支持分页、场景出处、已核实证据关联和 Esc/手柄分层返回。手记只读，不会绕过原来的剧情证据校验。
+
+- [Stage25 完整开发与验收报告](docs/STAGE25-BUNDLED-ART-AND-JOURNAL.md)
+- [直接随源码交付的完整 18 张 PNG](Assets/StreamingAssets/Investigation/)
+- [新的 C# 现场调查手记规则](Assets/Scripts/Core/EchoInvestigationJournal.cs)
+- [原生 Unity 调查 UI](Assets/Scripts/UI/EchoInvestigationOverlay.cs)
+
+**验证边界：** C# CoreHost + Python 可在 GitHub Actions 真正运行，Unity Editor/PlayMode 与 Windows EXE 仍需合法激活后实际执行，不能仅凭脚本检查称为已完成原生玩家验收。
+
+---
+
 # 《03:17 · 回声》Stage 24｜镜头内可点击调查与生成素材接入
 
 **实际 Unity 交互新增**：23 个跨序章/第一至第三幕的画面热点；在有调查对象的场景按 **H** 或点击「现场调查」暂停影片，使用鼠标、键盘或手柄检查物体。热区显示默认/选中/已调查三态和对应图标，右侧显示调查结果；Esc/B 可安全返回剧情。调查记录存入当前时间线，重复点击不会刷记录，回溯时自动撤销废弃路径，且不会伪造剧情证据。
@@ -13,7 +26,7 @@ python Tools/install-stage24-assets.py --archive /path/to/Echo0317-Stage24-Inves
 - [Unity 调查视觉层](Assets/Scripts/UI/EchoInvestigationOverlay.cs)
 - [防伪时间线调查逻辑](Assets/Scripts/Core/EchoHotspotInvestigation.cs)
 
-**验证边界：** GitHub Actions 可运行 C# 核心与 Python 回归；真正的 Unity Editor/PlayMode/Windows EXE 尚未执行。高分辨率 PNG 目前作为独立 ZIP 交付，尚未提交到 GitHub 仓库。
+**Stage25 更新：** 调查 UI 的 18 张优化透明 PNG 已直接提交到 GitHub，以上 ZIP 安装是可选的高清替换方案。C# / Python CI 可验证源码和资源字节；Unity Editor/PlayMode/Windows EXE 仍未执行。
 
 ---
 
