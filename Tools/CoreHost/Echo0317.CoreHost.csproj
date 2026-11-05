@@ -15,6 +15,7 @@
     <Compile Include="../../Assets/Scripts/Core/EchoModalFlow.cs" Link="Core/EchoModalFlow.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoInvestigation.cs" Link="Core/EchoInvestigation.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoHotspotInvestigation.cs" Link="Core/EchoHotspotInvestigation.cs" />
+    <Compile Include="../../Assets/Scripts/Core/EchoInvestigationJournal.cs" Link="Core/EchoInvestigationJournal.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoSaves.cs" Link="Core/EchoSaves.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoPreferences.cs" Link="Core/EchoPreferences.cs" />
     <Compile Include="UnityShim.cs" />
