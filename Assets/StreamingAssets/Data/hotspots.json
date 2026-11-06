@@ -16,7 +16,7 @@
       "required": false,
       "requiresFlags": [],
       "crossCheckId": "intro_photo",
-      "crossCheckText": "发送队列并不能确认发件人的身份；同一房间的照片也可能保留被重写的记忆。"
+      "crossCheckText": "发送队列并不能确认发件人的身份，照片也可能保留被重写的记忆；不能让两种记录互相担保。"
     },
     {
       "id": "intro_photo",
