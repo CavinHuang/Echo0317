@@ -13,6 +13,8 @@
     <Compile Include="../../Assets/Scripts/Core/EchoDialogueHistory.cs" Link="Core/EchoDialogueHistory.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoScenePresentation.cs" Link="Core/EchoScenePresentation.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoPlaybackState.cs" Link="Core/EchoPlaybackState.cs" />
+    <Compile Include="../../Assets/Scripts/Core/EchoFirstActFoleyPlan.cs" Link="Core/EchoFirstActFoleyPlan.cs" />
+    <Compile Include="../../Assets/Scripts/Core/EchoSubtitlePresentation.cs" Link="Core/EchoSubtitlePresentation.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoModalFlow.cs" Link="Core/EchoModalFlow.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoInvestigation.cs" Link="Core/EchoInvestigation.cs" />
     <Compile Include="../../Assets/Scripts/Core/EchoHotspotInvestigation.cs" Link="Core/EchoHotspotInvestigation.cs" />
