@@ -1,3 +1,20 @@
+# 《03:17 · 回声》Stage 29｜真正有后果的剧情选择与审计推理门槛
+
+本期开始把影游的调查和推理从“可跳过的辅助页面”接入**实际剧情体验**：
+
+- **第一至第五幕**：此前写在 `story.json` 中、却没有渲染出来的证据条件台词，现随玩家已取得的证据变化并显示在主剧情和对白回顾中；回顾严格使用**当时**的旗标，防止后取得的线索污染前面的剧情。
+- **最终独立审计结局**：拿到双方独立签署还不够，玩家必须先在原有双证据槽正确完成 `independent_will`（独立意愿）推理，才能提交审计。条件由真实 C# 叙事引擎和存档历史一起校验，不只禁用按钮。其他三结局保持可达。
+- **旧存档兼容**：采用 `format=7`；合法到达旧审计结局的格式 5/6 存档，在满足原先已有证据的前提下迁移已结束的结局。新档不允许伪造推理绕过。
+- **真实测试**：.NET 8 C# CoreHost 四结局、原生 Player QA 测试流程、Unity EditMode 测试源码与 Python 数据回归同步更新。
+
+[Stage 29 完整开发及边界说明](docs/STAGE29-NARRATIVE-CONSEQUENCES.md) ·
+[实时剧情后果渲染](Assets/Scripts/Core/EchoScenePresentation.cs) ·
+[核心推理门槛](Assets/Scripts/Core/EchoNarrative.cs)
+
+**仍需完成**：Unity Editor/Windows EXE 真正编译验收，27 个正式电影镜头，以及其余案件与更多场景调查的深度联动。当前没有宣称已经生成可启动 EXE。
+
+---
+
 # 《03:17 · 回声》Stage 28｜官方免费 Unity Cloud Windows 构建路径
 
 Unity 官方 **Build Automation** 可以直接从 GitHub `main` 编译 Windows x64 游戏，**无需将个人 Unity License 文件放入 GitHub Actions**。2026 年免费 DevOps 方案包含 Windows 计算构建分钟额度；具体可用分钟和费用以登录后的 Unity Dashboard 为准。

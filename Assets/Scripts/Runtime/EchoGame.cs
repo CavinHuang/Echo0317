@@ -347,7 +347,7 @@ namespace Echo0317.Runtime
             ui.Clock.text = n.clock ?? "03:17";
             ui.Speaker.text = n.speaker ?? "";
             ui.Title.text = n.title ?? "";
-            ui.Body.text = string.Join("\n\n", n.lines ?? Array.Empty<string>());
+            ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(n, state.flags, state.attempts));
             string clip = ClipFor(n);
             video.SetSceneArt(SceneFor(n));
             video.Show(clip);
@@ -367,9 +367,10 @@ namespace Echo0317.Runtime
                 for (int i=0;i<options.Length;i++)
                 {
                     var choice = options[i];
-                    bool usable = EchoNarrative.Allowed(choice, state.flags);
+                    bool usable = EchoNarrative.AllowedWithDeductions(catalog, choice, state);
                     string label = (i+1) + ".  " + choice.label;
-                    if (!usable) label += "    [条件未满足]";
+                    if (!usable) label += "    [" +
+                        (string.IsNullOrEmpty(choice.lockedLabel) ? "条件未满足" : choice.lockedLabel) + "]";
                     ui.AddChoice(label, () => Choose(n.id, choice), usable);
                 }
                 var sceneHotspots = EchoHotspotInvestigation.Visible(catalog, state);
@@ -765,6 +766,7 @@ namespace Echo0317.Runtime
                 ui.PlayDossierSound(success ? EchoDossierCue.Solve : EchoDossierCue.Reject, muted);
                 deductionFeedback = success ? "推理成立：" + rule.explanation :
                     "推理尚不成立：" + rule.hint;
+                if (success) Render(); // Refresh newly unlocked ending choice without restarting its video.
                 Open("cases");
             }
             catch (Exception e)
@@ -960,7 +962,9 @@ namespace Echo0317.Runtime
             string content=catalog.Cue(video.CurrentClip,video.CurrentTime);
             if(string.IsNullOrEmpty(content)&&!video.IsPlaying)
             {
-                var n=catalog.Nodes[state.node];content=n.lines.Length>0?n.lines[n.lines.Length-1]:"";
+                var n=catalog.Nodes[state.node];
+                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts);
+                content=rendered.Length>0?rendered[rendered.Length-1]:"";
             }
             ui.Subtitle.text=content;
         }
@@ -996,7 +1000,7 @@ namespace Echo0317.Runtime
                 if (Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i)))
                 {
                     // Keyboard controls must obey the same lock rules as UI buttons.
-                    if (EchoNarrative.Allowed(choices[i], state.flags)) Choose(state.node, choices[i]);
+                    if (EchoNarrative.AllowedWithDeductions(catalog, choices[i], state)) Choose(state.node, choices[i]);
                     return;
                 }
             }

@@ -29,7 +29,7 @@ namespace Echo0317.Core
     [Serializable] public class StoryChoice
     {
         public string label, to, flag, lockedLabel;
-        public string[] requires, needsAny, forbids;
+        public string[] requires, needsAny, forbids, requiresSolved;
     }
     [Serializable] public class EvidenceDefinition { public string id, label; }
     [Serializable] public class MediaDefinition { public string id, src, status, purpose; public bool ready; }
@@ -109,7 +109,13 @@ namespace Echo0317.Core
                 if (n.chapterIndex < 1 || n.chapterIndex > 5) throw new InvalidDataException("章节编号越界 " + n.id);
                 if (!string.IsNullOrEmpty(n.@next) && !Nodes.ContainsKey(n.@next)) throw new InvalidDataException("断开的下一节点 " + n.id);
                 if (n.choices != null) foreach (var c in n.choices)
+                {
                     if (!Nodes.ContainsKey(c.to)) throw new InvalidDataException("非法分支 " + n.id + " -> " + c.to);
+                    if (c.requiresSolved != null)
+                        foreach (var ruleId in c.requiresSolved)
+                            if (!Rules.ContainsKey(ruleId))
+                                throw new InvalidDataException("分支引用了不存在的推理案件 " + n.id + " -> " + ruleId);
+                }
             }
         }
         public static GameCatalog LoadFromStreamingAssets()

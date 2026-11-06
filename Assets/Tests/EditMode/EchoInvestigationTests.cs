@@ -43,8 +43,12 @@ namespace Echo0317.Tests
                 var state = EchoNarrative.Fresh();
                 foreach (var id in route.nodes.Skip(1))
                 {
+                    if (id == "ending_audit")
+                        state = EchoNarrative.RecordDeduction(catalog, state,
+                            "independent_will",catalog.Rules["independent_will"].correct);
                     var option = EchoNarrative.Choices(catalog.Nodes[state.node])
-                        .Single(c => c.to == id && EchoNarrative.Allowed(c, state.flags));
+                        .Single(c => c.to == id &&
+                            EchoNarrative.AllowedWithDeductions(catalog, c, state));
                     state = EchoNarrative.Advance(catalog, state, option);
                 }
                 var archive = EchoInvestigation.Archive(catalog, state);
@@ -57,6 +61,12 @@ namespace Echo0317.Tests
                 {
                     var rule = catalog.Rules[card.Id];
                     if (!card.Ready) continue;
+                    if (card.Solved)
+                    {
+                        Assert.IsFalse(EchoInvestigation.PairMatches(catalog,state,rule.id,rule.clues),
+                            "A solved case is not replayable just because its clues remain in inventory.");
+                        continue;
+                    }
                     matchedCases++;
                     Assert.IsTrue(EchoInvestigation.PairMatches(catalog, state, rule.id, rule.clues));
                     Assert.IsFalse(EchoInvestigation.PairMatches(catalog, state, rule.id,

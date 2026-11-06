@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace Echo0317.Core
@@ -22,7 +23,7 @@ namespace Echo0317.Core
             return Path.Combine(folder, "slot-" + number + ".json");
         }
         SaveEnvelope Envelope(GameProgress progress) => new SaveEnvelope {
-            game = "0317-echo", format = 6, storyRevision = catalog.Story.revision,
+            game = "0317-echo", format = 7, storyRevision = catalog.Story.revision,
             exportedAt = DateTime.UtcNow.ToString("o"), state = EchoNarrative.Normalize(catalog, progress)
         };
         static void WriteAtomic(string file, string content)
@@ -82,10 +83,34 @@ namespace Echo0317.Core
             SaveEnvelope env;
             try { env = JsonUtility.FromJson<SaveEnvelope>(json); }
             catch (Exception ex) { throw new InvalidDataException("存档 JSON 无效", ex); }
-            if (env == null || env.game != "0317-echo" || (env.format != 5 && env.format != 6))
+            if (env == null || env.game != "0317-echo" || (env.format != 5 && env.format != 6 && env.format != 7))
                 throw new InvalidDataException("不支持的存档格式");
             if (env.storyRevision != catalog.Story.revision)
                 throw new InvalidDataException("剧情版本不匹配，不能安全恢复");
+            // Earlier format-5/6 saves could legitimately reach the audited
+            // ending before Stage29 introduced the playable proof gate.
+            // Migrate only that ALREADY COMPLETED historical route, and only
+            // when its canonical evidence actually satisfies the case.
+            // New format-7 states never receive a synthesized deduction.
+            if (env.format <= 6 && env.state != null && env.state.history != null)
+            {
+                int at = Array.FindIndex(env.state.history, step => step != null &&
+                    step.from == "c5_gate" && step.to == "ending_audit");
+                var oldAttempts = env.state.attempts ?? Array.Empty<Attempt>();
+                if (at >= 0 && !oldAttempts.Any(x => x != null &&
+                    x.rule == "independent_will" && x.answer == catalog.Rules["independent_will"].correct &&
+                    x.at <= at))
+                {
+                    var flags = EchoNarrative.Trace(catalog,
+                        env.state.history.Take(at).ToArray()).Flags;
+                    var rule = catalog.Rules["independent_will"];
+                    if (!rule.clues.All(flags.Contains))
+                        throw new InvalidDataException("旧审计结局缺少合法的独立意愿证据");
+                    env.state.attempts = oldAttempts.Concat(new[] {
+                        new Attempt { rule = rule.id, answer = rule.correct, at = at }
+                    }).OrderBy(x => x.at).ToArray();
+                }
+            }
             return EchoNarrative.Normalize(catalog, env.state);
         }
         public GameProgress ImportOldStage8Save(string absolutePath)

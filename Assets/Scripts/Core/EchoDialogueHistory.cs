@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Echo0317.Core
 {
@@ -54,6 +55,7 @@ namespace Echo0317.Core
             var end = total - selectedPage * pageSize;
             var start = Math.Max(0, end - pageSize);
             var entries = new List<DialogueHistoryEntry>(end - start);
+            var points = EchoNarrative.Trace(catalog, state.history).Points;
             for (int i = start; i < end; i++)
             {
                 var step = i < state.history.Length ? state.history[i] : null;
@@ -66,7 +68,8 @@ namespace Echo0317.Core
                     Title = node.title ?? "",
                     Speaker = node.speaker ?? "",
                     Clock = node.clock ?? "",
-                    Lines = (string[])(node.lines?.Clone() ?? Array.Empty<string>()),
+                    Lines = EchoScenePresentation.Lines(node, points[i].Flags,
+                        state.attempts.Where(a => a.at <= i)),
                     Choice = step?.choice ?? "",
                     IsCurrent = step == null
                 });

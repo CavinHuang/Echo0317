@@ -24,6 +24,12 @@ static class Program
             var catalog = GameCatalog.LoadFromStreamingAssets();
             Require(catalog.Nodes.Count == 55 && catalog.Rules.Count == 5, "narrative catalog missing");
             Require(catalog.Hotspots.Count == 23, "investigation hotspot catalog missing");
+            var firstActReactions = EchoScenePresentation.Lines(catalog.Nodes["c1_hook"],
+                new[]{"tested_password"}, Array.Empty<Attempt>());
+            Require(firstActReactions.Any(line=>line.Contains("知道她过去怎么说")) &&
+                    !firstActReactions.Any(line=>line.Contains("照片背面写着")),
+                "existing first-act evidence consequences are not visible in runtime");
+
             // Stage 26: real Unity hotspot navigation decisions are compiled
             // and checked here on the same authored source coordinates.
             var introNavigation = EchoHotspotInvestigation.Visible(catalog, EchoNarrative.Fresh());
@@ -157,8 +163,19 @@ static class Program
                     var state = EchoNarrative.Fresh();
                     for (int i = 1; i < nodes.Length; i++)
                     {
+                        if (ending == "ending_audit" && nodes[i] == "ending_audit")
+                        {
+                            var auditChoice = EchoNarrative.Choices(catalog.Nodes[state.node])
+                                .Single(x => x.to == "ending_audit");
+                            Require(!EchoNarrative.AllowedWithDeductions(catalog, auditChoice, state),
+                                "audit was unlocked without the player's independent-will deduction");
+                            state = EchoNarrative.RecordDeduction(catalog, state,
+                                "independent_will", catalog.Rules["independent_will"].correct);
+                            Require(EchoNarrative.AllowedWithDeductions(catalog, auditChoice, state),
+                                "valid deduction failed to unlock audit");
+                        }
                         var options = EchoNarrative.Choices(catalog.Nodes[state.node])
-                            .Where(x => x.to == nodes[i] && EchoNarrative.Allowed(x, state.flags)).ToArray();
+                            .Where(x => x.to == nodes[i] && EchoNarrative.AllowedWithDeductions(catalog, x, state)).ToArray();
                         Require(options.Length == 1, "ambiguous choice on " + state.node);
                         state = EchoNarrative.Advance(catalog, state, options[0]);
                         choices++;
@@ -205,6 +222,12 @@ static class Program
                             caseCard.AcquiredCount == rule.clues.Count(state.flags.Contains),
                             "caseboard availability does not match actual evidence");
                         if (!ready) continue;
+                        if (EchoNarrative.IsSolved(catalog, state, rule.id))
+                        {
+                            Require(!EchoInvestigation.PairMatches(catalog,state,rule.id,rule.clues),
+                                "a solved case must not allow duplicate proof submissions");
+                            continue;
+                        }
                         Require(EchoInvestigation.PairMatches(catalog, state, rule.id, rule.clues),
                             "real available two-clue pair must unlock its case");
                         Require(!EchoInvestigation.PairMatches(catalog, state, rule.id,
@@ -229,6 +252,41 @@ static class Program
                     Require(!EchoInvestigation.PairMatches(catalog, discarded,
                         "door_identity", new[] { "shadow", "tested_password" }),
                         "rewound evidence must not be usable for deduction");
+                    if (ending == "ending_audit")
+                    {
+                        Require(EchoNarrative.IsSolved(catalog,state,"independent_will"),
+                            "player must complete the independent-will deduction for audited ending");
+                        var forgedEnding = new GameProgress {
+                            node = state.node, flags = state.flags,
+                            history = state.history, endings = state.endings,
+                            attempts = Array.Empty<Attempt>(), inspections = state.inspections
+                        };
+                        bool rejected = false;
+                        try { EchoNarrative.Normalize(catalog,forgedEnding); }
+                        catch (InvalidOperationException) { rejected = true; }
+                        Require(rejected,"format-7 audit forgery was not rejected");
+
+                        var oldEnvelope = new SaveEnvelope {
+                            game = "0317-echo", format = 6,
+                            storyRevision = catalog.Story.revision, state = forgedEnding
+                        };
+                        var migrated = store.Parse(JsonUtility.ToJson(oldEnvelope));
+                        Require(migrated.node == "ending_audit" &&
+                                EchoNarrative.IsSolved(catalog,migrated,"independent_will"),
+                            "legacy audit save migration did not preserve its earned ending");
+                        oldEnvelope.format = 7;
+                        bool newRejected = false;
+                        try { store.Parse(JsonUtility.ToJson(oldEnvelope)); }
+                        catch (InvalidOperationException) { newRejected = true; }
+                        Require(newRejected, "new saves must not receive grandfathered proof");
+
+                        var auditHistory = EchoDialogueHistory.Read(catalog,state,0,30);
+                        var visitsToGate = auditHistory.Entries.Where(x=>x.NodeId=="c5_gate").ToArray();
+                        Require(visitsToGate.Length == 2 &&
+                            !visitsToGate[0].Lines.Any(x=>x.Contains("现在可以提交独立审计")) &&
+                            visitsToGate[1].Lines.Any(x=>x.Contains("现在可以提交独立审计")),
+                            "historical transcript leaked a later deduction into an earlier scene");
+                    }
                     Require(state.node == ending && state.endings.Contains(ending), "route ending mismatch");
                     endings.Add(ending);
                     store.AutoSave(state);

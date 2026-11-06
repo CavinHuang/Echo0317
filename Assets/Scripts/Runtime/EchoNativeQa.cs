@@ -152,8 +152,23 @@ namespace Echo0317.Runtime
                     for (int i = 1; i < route.nodes.Length; i++)
                     {
                         var current = catalog.Nodes[progress.node];
+                        // Simulate the player actually opening the deduction board
+                        // and proving both independently signed wills. The normal
+                        // runtime never auto-solves this: its UI requires two cards.
+                        if (route.ending == "ending_audit" && route.nodes[i] == "ending_audit")
+                        {
+                            var auditChoice = EchoNarrative.Choices(current)
+                                .Single(c => c.to == "ending_audit");
+                            Require(!EchoNarrative.AllowedWithDeductions(catalog, auditChoice, progress),
+                                "审计结局在未完成推理前就已经解锁");
+                            progress = EchoNarrative.RecordDeduction(catalog, progress,
+                                "independent_will", catalog.Rules["independent_will"].correct);
+                            Require(EchoNarrative.AllowedWithDeductions(catalog, auditChoice, progress),
+                                "核实独立意愿后，审计结局仍被错误锁定");
+                        }
                         var choices = EchoNarrative.Choices(current)
-                            .Where(c => c.to == route.nodes[i] && EchoNarrative.Allowed(c, progress.flags)).ToArray();
+                            .Where(c => c.to == route.nodes[i] &&
+                                EchoNarrative.AllowedWithDeductions(catalog, c, progress)).ToArray();
                         Require(choices.Length == 1, "结局 " + route.ending + " 的分支有歧义：" + current.id + " -> " + route.nodes[i]);
                         progress = EchoNarrative.Advance(catalog, progress, choices[0]);
                         Require(progress.node == route.nodes[i], "推进目的地与预期不一致");

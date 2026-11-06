@@ -21,6 +21,20 @@ namespace Echo0317.Tests
         GameCatalog catalog;
         [SetUp] public void Prepare() { catalog = GameCatalog.LoadFromStreamingAssets(); }
 
+        static GameProgress CompleteRequiredAuditProof(GameCatalog catalog,
+            GameProgress progress, string destination)
+        {
+            if (destination != "ending_audit") return progress;
+            var choice = EchoNarrative.Choices(catalog.Nodes[progress.node])
+                .Single(c => c.to == destination);
+            Assert.IsFalse(EchoNarrative.AllowedWithDeductions(catalog, choice, progress),
+                "The proof branch must be blocked before the player solves its case.");
+            progress = EchoNarrative.RecordDeduction(catalog, progress,
+                "independent_will", catalog.Rules["independent_will"].correct);
+            Assert.IsTrue(EchoNarrative.AllowedWithDeductions(catalog, choice, progress));
+            return progress;
+        }
+
         [Test] public void EveryVerifiedEndingIsActuallyPlayableInCSharp()
         {
             var path = Path.Combine(Application.streamingAssetsPath, "Data", "verified-ending-paths.json");
@@ -35,8 +49,10 @@ namespace Echo0317.Tests
                 for (var i = 1; i < route.nodes.Length; i++)
                 {
                     var destination = route.nodes[i];
+                    state = CompleteRequiredAuditProof(catalog, state, destination);
                     var legal = EchoNarrative.Choices(catalog.Nodes[state.node])
-                        .Where(c => c.to == destination && EchoNarrative.Allowed(c, state.flags)).ToArray();
+                        .Where(c => c.to == destination &&
+                            EchoNarrative.AllowedWithDeductions(catalog, c, state)).ToArray();
                     Assert.AreEqual(1, legal.Length, route.ending + " at " + state.node + " -> " + destination);
                     state = EchoNarrative.Advance(catalog, state, legal[0]);
                     Assert.AreEqual(destination, state.node);
@@ -77,8 +93,9 @@ namespace Echo0317.Tests
                 var storage = new EchoSaves(catalog, directory);
                 for (var i = 1; i < route.nodes.Length; i++)
                 {
+                    state = CompleteRequiredAuditProof(catalog, state, route.nodes[i]);
                     var choice = EchoNarrative.Choices(catalog.Nodes[state.node]).Single(c =>
-                        c.to == route.nodes[i] && EchoNarrative.Allowed(c, state.flags));
+                        c.to == route.nodes[i] && EchoNarrative.AllowedWithDeductions(catalog, c, state));
                     state = EchoNarrative.Advance(catalog, state, choice);
                     if (i == 11)
                     {
