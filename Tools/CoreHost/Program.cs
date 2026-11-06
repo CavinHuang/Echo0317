@@ -157,8 +157,19 @@ static class Program
                     var state = EchoNarrative.Fresh();
                     for (int i = 1; i < nodes.Length; i++)
                     {
+                        if (ending == "ending_audit" && nodes[i] == "ending_audit")
+                        {
+                            var auditChoice = EchoNarrative.Choices(catalog.Nodes[state.node])
+                                .Single(x => x.to == "ending_audit");
+                            Require(!EchoNarrative.AllowedWithDeductions(catalog, auditChoice, state),
+                                "audit was unlocked without the player's independent-will deduction");
+                            state = EchoNarrative.RecordDeduction(catalog, state,
+                                "independent_will", catalog.Rules["independent_will"].correct);
+                            Require(EchoNarrative.AllowedWithDeductions(catalog, auditChoice, state),
+                                "valid deduction failed to unlock audit");
+                        }
                         var options = EchoNarrative.Choices(catalog.Nodes[state.node])
-                            .Where(x => x.to == nodes[i] && EchoNarrative.Allowed(x, state.flags)).ToArray();
+                            .Where(x => x.to == nodes[i] && EchoNarrative.AllowedWithDeductions(catalog, x, state)).ToArray();
                         Require(options.Length == 1, "ambiguous choice on " + state.node);
                         state = EchoNarrative.Advance(catalog, state, options[0]);
                         choices++;
