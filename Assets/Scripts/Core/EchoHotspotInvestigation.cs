@@ -51,6 +51,35 @@ namespace Echo0317.Core
                 v != null && v.id == definition.id && v.at == step && v.node == progress.node);
         }
 
+        /// <summary>
+        /// Is this observation present at or before the requested canonical
+        /// checkpoint? The read-only current scene and transcript use the same
+        /// saved visit data and never invent an unseen investigation.
+        /// </summary>
+        public static bool WasInspected(GameProgress progress, string hotspotId,
+            int throughStep = int.MaxValue)
+        {
+            if (progress == null || string.IsNullOrEmpty(hotspotId)) return false;
+            return (progress.inspections ?? Array.Empty<HotspotVisit>())
+                .Any(v => v != null && v.id == hotspotId && v.at <= throughStep);
+        }
+
+        /// <summary>
+        /// Compares two actual inspected objects, without manufacturing
+        /// deduction attempts or canonical evidence flags. No comparison
+        /// appears if the referenced earlier target was never inspected.
+        /// </summary>
+        public static string CrossCheck(GameProgress progress, HotspotDefinition hotspot)
+        {
+            if (progress == null || hotspot == null ||
+                string.IsNullOrWhiteSpace(hotspot.crossCheckId) ||
+                string.IsNullOrWhiteSpace(hotspot.crossCheckText) ||
+                !WasInspected(progress, hotspot.id) ||
+                !WasInspected(progress, hotspot.crossCheckId))
+                return string.Empty;
+            return hotspot.crossCheckText;
+        }
+
         public static HotspotVisit[] Validate(GameCatalog catalog, Step[] history, HotspotVisit[] visits)
         {
             var records = visits ?? Array.Empty<HotspotVisit>();
