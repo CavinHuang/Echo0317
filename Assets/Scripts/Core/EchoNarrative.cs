@@ -164,7 +164,7 @@ namespace Echo0317.Core
         public static GameProgress Advance(GameCatalog g, GameProgress progress, StoryChoice choice)
         {
             var p = Normalize(g, progress);
-            if (choice == null || !g.Nodes.ContainsKey(choice.to) || !AllowedWithDeductions(g, choice, p)
+            if (choice == null || !g.Nodes.ContainsKey(choice.to) || !AllowedWithDeductions(g, choice, p))
                 throw new InvalidOperationException("不可用的剧情选择");
             if (!Choices(g.Nodes[p.node]).Any(c => c.to == choice.to && c.label == choice.label))
                 throw new InvalidOperationException("不能跨过剧情节点");
