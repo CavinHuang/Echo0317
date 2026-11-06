@@ -71,8 +71,8 @@ class Stage30FirstActInvestigations(unittest.TestCase):
 
     def test_corehost_and_unity_native_checks_cover_live_gameplay(self):
         host=self.src("Tools/CoreHost/Program.cs")
-        for marker in (""intro_phone"", ""intro_photo"", ""peephole_shadow"",
-                       ""door_password"", "EchoScenePresentation.Lines(",
+        for marker in ('"intro_phone"', '"intro_photo"', '"peephole_shadow"',
+                       '"door_password"', "EchoScenePresentation.Lines(",
                        "EchoDialogueHistory.Read(", "EchoNarrative.Rewind(",
                        "EchoHotspotInvestigation.CrossCheck(",
                        "store.SaveSlot(1,hookObserved)","store.LoadSlot(1)"):
