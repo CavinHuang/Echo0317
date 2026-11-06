@@ -1,3 +1,25 @@
+# 《03:17 · 回声》Stage 27｜Unity Windows Alpha 合法授权与构建通路
+
+**当前首要目标仍是真正可运行的 Windows EXE。** 已核验 GitHub 托管 Unity CI 的实际授权缺口：原生 C# CoreHost 通过，但 Unity 测试因缺少授权配置没有运行。**不要从互联网“捞”他人的 Unity License/账号/密钥。** Unity 官方 6.3 文档要求 Unity Personal 使用 Unity Hub 登录激活；本轮实现官方支持的**免费 Personal + 本机 Windows 构建 / 同用户自托管 GitHub Actions**路线，保留已有合法付费授权的 GitHub Hosted GameCI 路线。
+
+在已安装 Unity Hub 的 Windows 11 中，通过自己的 Unity ID 激活 Personal 并装好 **6000.3.2f1 + Windows Build Support**，之后可执行：
+
+```powershell
+.\Tools\prepare-unity-windows.ps1 -OpenHub
+.\Tools\prepare-unity-windows.ps1 -VerifyEditor
+.\Tools\prepare-unity-windows.ps1 -BuildAlpha
+```
+
+脚本会真正运行 Unity Editor 导入/测试/Windows Player 构建与本机四结局 QA；**仅脚本存在和 CoreHost CI 通过不代表已生成 EXE**。此时若授权不可用将明确失败，并写入无敏感信息的 `Builds/unity-local-activation-preflight.json`。GitHub 自托管 `windows-unity-native.yml` 现在也必须通过真实 Editor 授权预检才会尝试编译。
+
+- [Stage27 合法授权方式、CI 与操作说明](docs/STAGE27-LEGAL-UNITY-ACTIVATION.md)
+- [本机一键构建与授权预检](Tools/prepare-unity-windows.ps1)
+- [个人设备上的 GitHub 原生 Unity 构建工作流](.github/workflows/windows-unity-native.yml)
+
+**当前构建边界：** GitHub Hosted 前次运行并未提供合法 Unity Secrets；没有实际 Unity Editor/Windows Player 结果，不声称正式 Alpha 构建成功。
+
+---
+
 # 《03:17 · 回声》Stage 26｜影片与热点真正对齐的 Unity 调查界面
 
 本阶段修复了 Stage 24/25 镜头调查的核心画面错位问题：现在将**真实的、暂停中的 `VideoLayer`** 临时移入调查视窗，使用 Unity 16:9 `AspectRatioFitter` 保留影片比例；热点直接成为影片层的子元素。退出会恢复原层级和原焦点，不重启解码器。手柄/键盘方向选择使用可在 .NET 8 真实编译测试的空间最近邻算法，替代不稳定的自动焦点；ESC/B 仍防同帧重复返回。
