@@ -13,10 +13,12 @@ namespace Echo0317.Core
     public static class EchoScenePresentation
     {
         public static string[] Lines(StoryNode scene, IEnumerable<string> flags,
-            IEnumerable<Attempt> attempts)
+            IEnumerable<Attempt> attempts, IEnumerable<HotspotVisit> observations = null)
         {
             if (scene == null) throw new ArgumentNullException(nameof(scene));
             var acquired = new HashSet<string>(flags ?? Array.Empty<string>());
+            var inspected = new HashSet<string>((observations ?? Array.Empty<HotspotVisit>())
+                .Where(v => v != null).Select(v => v.id), StringComparer.Ordinal);
             var entries = (scene.lines ?? Array.Empty<string>()).ToList();
             foreach (var reaction in scene.reactions ?? Array.Empty<StoryReaction>())
             {
@@ -25,7 +27,12 @@ namespace Echo0317.Core
                     acquired.Contains(reaction.@if);
                 bool forbidden = !string.IsNullOrWhiteSpace(reaction.unless) &&
                     acquired.Contains(reaction.unless);
-                if (required && !forbidden) entries.Add(reaction.text);
+                bool inspectedRequired = string.IsNullOrWhiteSpace(reaction.ifInspected) ||
+                    inspected.Contains(reaction.ifInspected);
+                bool inspectedForbidden = !string.IsNullOrWhiteSpace(reaction.unlessInspected) &&
+                    inspected.Contains(reaction.unlessInspected);
+                if (required && !forbidden && inspectedRequired && !inspectedForbidden)
+                    entries.Add(reaction.text);
             }
 
             if (scene.id == "c5_gate" && acquired.Contains("joint_signed"))
