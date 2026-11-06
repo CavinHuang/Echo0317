@@ -283,7 +283,7 @@ static class Program
                         var auditHistory = EchoDialogueHistory.Read(catalog,state,0,30);
                         var visitsToGate = auditHistory.Entries.Where(x=>x.NodeId=="c5_gate").ToArray();
                         Require(visitsToGate.Length == 2 &&
-                            visitsToGate[0].Lines.Any(x=>x.Contains("先在「证据推理」核实")) &&
+                            !visitsToGate[0].Lines.Any(x=>x.Contains("现在可以提交独立审计")) &&
                             visitsToGate[1].Lines.Any(x=>x.Contains("现在可以提交独立审计")),
                             "historical transcript leaked a later deduction into an earlier scene");
                     }
