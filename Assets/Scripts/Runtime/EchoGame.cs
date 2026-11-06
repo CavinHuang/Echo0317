@@ -963,7 +963,7 @@ namespace Echo0317.Runtime
             if(string.IsNullOrEmpty(content)&&!video.IsPlaying)
             {
                 var n=catalog.Nodes[state.node];
-                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts);
+                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts,state.inspections);
                 content=rendered.Length>0?rendered[rendered.Length-1]:"";
             }
             ui.Subtitle.text=content;
