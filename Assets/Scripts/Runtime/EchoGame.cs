@@ -347,7 +347,7 @@ namespace Echo0317.Runtime
             ui.Clock.text = n.clock ?? "03:17";
             ui.Speaker.text = n.speaker ?? "";
             ui.Title.text = n.title ?? "";
-            ui.Body.text = string.Join("\n\n", n.lines ?? Array.Empty<string>());
+            ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(n, state.flags, state.attempts));
             string clip = ClipFor(n);
             video.SetSceneArt(SceneFor(n));
             video.Show(clip);
