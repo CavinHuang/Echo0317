@@ -25,7 +25,7 @@ namespace Echo0317.Core
         public string[] entryFlags;
         public StoryReaction[] reactions;
     }
-    [Serializable] public class StoryReaction { public string @if, unless, text; }
+    [Serializable] public class StoryReaction { public string @if, unless, ifInspected, unlessInspected, text; }
     [Serializable] public class StoryChoice
     {
         public string label, to, flag, lockedLabel;
@@ -101,6 +101,18 @@ namespace Echo0317.Core
                     throw new InvalidDataException("调查热点配置无效 " + h?.id);
                 Hotspots.Add(h.id, h);
             }
+            // Validate every relationship only after the complete hotspot
+            // catalog is loaded. An invalid or future-only reference must
+            // fail on import instead of silently fabricating a comparison.
+            foreach (var h in HotspotData.hotspots)
+            {
+                if (string.IsNullOrEmpty(h.crossCheckId)) continue;
+                if (h.crossCheckId == h.id ||
+                    !Hotspots.TryGetValue(h.crossCheckId, out var related) ||
+                    string.IsNullOrWhiteSpace(h.crossCheckText) ||
+                    Nodes[related.node].chapterIndex > Nodes[h.node].chapterIndex)
+                    throw new InvalidDataException("调查交叉引用无效 " + h.id);
+            }
             if (!Nodes.ContainsKey("intro")) throw new InvalidDataException("缺少 intro 起始节点");
             foreach (var n in Story.nodes)
             {
@@ -108,6 +120,19 @@ namespace Echo0317.Core
                 if (!Media.ContainsKey(n.clip)) throw new InvalidDataException("缺少镜头 " + n.clip);
                 if (n.chapterIndex < 1 || n.chapterIndex > 5) throw new InvalidDataException("章节编号越界 " + n.id);
                 if (!string.IsNullOrEmpty(n.@next) && !Nodes.ContainsKey(n.@next)) throw new InvalidDataException("断开的下一节点 " + n.id);
+                if (n.reactions != null) foreach (var reaction in n.reactions)
+                {
+                    if (reaction == null || string.IsNullOrWhiteSpace(reaction.text))
+                        throw new InvalidDataException("剧情反馈文本无效 " + n.id);
+                    if (HotspotData.hotspots.Length > 0 &&
+                        !string.IsNullOrEmpty(reaction.ifInspected) &&
+                        !Hotspots.ContainsKey(reaction.ifInspected))
+                        throw new InvalidDataException("剧情反馈引用了未知调查点 " + n.id);
+                    if (HotspotData.hotspots.Length > 0 &&
+                        !string.IsNullOrEmpty(reaction.unlessInspected) &&
+                        !Hotspots.ContainsKey(reaction.unlessInspected))
+                        throw new InvalidDataException("剧情反馈排除条件引用了未知调查点 " + n.id);
+                }
                 if (n.choices != null) foreach (var c in n.choices)
                 {
                     if (!Nodes.ContainsKey(c.to)) throw new InvalidDataException("非法分支 " + n.id + " -> " + c.to);

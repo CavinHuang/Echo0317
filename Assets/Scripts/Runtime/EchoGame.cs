@@ -313,6 +313,11 @@ namespace Echo0317.Runtime
                 var inspected = EchoHotspotInvestigation.Inspect(catalog, state, id);
                 state = inspected;
                 if (!wasInspected) Persist();
+                // Refresh the real story text after inspecting the film. Calling
+                // Render() here would unmount the current paused film frame.
+                var scene = catalog.Nodes[state.node];
+                ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(
+                    scene, state.flags, state.attempts, state.inspections));
                 bool verified = EchoHotspotInvestigation.IsEvidenceVerified(catalog, state, id);
                 ui.PlayDossierSound(wasInspected ? EchoDossierCue.Reject : EchoDossierCue.Pin, muted);
                 investigationOverlay.Show(hotspots, state, id, !wasInspected, verified,
@@ -347,7 +352,7 @@ namespace Echo0317.Runtime
             ui.Clock.text = n.clock ?? "03:17";
             ui.Speaker.text = n.speaker ?? "";
             ui.Title.text = n.title ?? "";
-            ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(n, state.flags, state.attempts));
+            ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(n, state.flags, state.attempts, state.inspections));
             string clip = ClipFor(n);
             video.SetSceneArt(SceneFor(n));
             video.Show(clip);
@@ -963,7 +968,7 @@ namespace Echo0317.Runtime
             if(string.IsNullOrEmpty(content)&&!video.IsPlaying)
             {
                 var n=catalog.Nodes[state.node];
-                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts);
+                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts,state.inspections);
                 content=rendered.Length>0?rendered[rendered.Length-1]:"";
             }
             ui.Subtitle.text=content;

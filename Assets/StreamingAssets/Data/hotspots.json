@@ -14,7 +14,9 @@
       "w": 0.18,
       "h": 0.27,
       "required": false,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_photo",
+      "crossCheckText": "发送队列并不能确认发件人的身份，照片也可能保留被重写的记忆；不能让两种记录互相担保。"
     },
     {
       "id": "intro_photo",
@@ -28,7 +30,9 @@
       "w": 0.18,
       "h": 0.22,
       "required": false,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_phone",
+      "crossCheckText": "照片与短信都能被保存或修改。时间和身份必须分别核对，不能让两种记录互相担保。"
     },
     {
       "id": "peephole_shadow",
@@ -42,7 +46,9 @@
       "w": 0.24,
       "h": 0.36,
       "required": true,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_phone",
+      "crossCheckText": "发送时间不能证明未来，逆光影子也不能直接证明门外人的身份。先记录异常，再寻找独立来源。"
     },
     {
       "id": "peephole_door",
@@ -70,7 +76,9 @@
       "w": 0.34,
       "h": 0.26,
       "required": true,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_photo",
+      "crossCheckText": "照片上的日期曾被修改；背面的承诺只能说明有人写过，并不能替她决定现在是否同意。"
     },
     {
       "id": "receipt_queue",
@@ -84,7 +92,9 @@
       "w": 0.3,
       "h": 0.27,
       "required": true,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_phone",
+      "crossCheckText": "你将本地队列与短信上的 03:22 放在一起：显示时间不等于网络发送时间，尾码 46 才值得追查。"
     },
     {
       "id": "door_password",
@@ -98,7 +108,9 @@
       "w": 0.27,
       "h": 0.32,
       "required": true,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "peephole_shadow",
+      "crossCheckText": "暗号确实对得上，但你亲眼看见过与光源相反的影子。两条线索无法直接证明她就是你记得的林岚。"
     },
     {
       "id": "voice_recorder",
@@ -112,7 +124,9 @@
       "w": 0.31,
       "h": 0.33,
       "required": true,
-      "requiresFlags": []
+      "requiresFlags": [],
+      "crossCheckId": "intro_phone",
+      "crossCheckText": "录音被剪辑过，短信也可能从本地队列发出。能听见熟悉的声音，不等于已核实当前说话者。"
     },
     {
       "id": "call_recorder",

@@ -69,7 +69,8 @@ namespace Echo0317.Core
                     Speaker = node.speaker ?? "",
                     Clock = node.clock ?? "",
                     Lines = EchoScenePresentation.Lines(node, points[i].Flags,
-                        state.attempts.Where(a => a.at <= i)),
+                        state.attempts.Where(a => a.at <= i),
+                        state.inspections.Where(v => v.at <= i)),
                     Choice = step?.choice ?? "",
                     IsCurrent = step == null
                 });
