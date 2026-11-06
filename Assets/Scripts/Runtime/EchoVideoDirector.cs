@@ -34,6 +34,9 @@ namespace Echo0317.Runtime
         public bool IsPreparing => preparingSlot >= 0;
         public bool IsPaused => playback.IsPaused;
         public bool IsPlaying => HasActiveVideo && players[active].isPlaying;
+        public bool IsFallback => playback.ClipId.Length > 0 && playback.IsFinished && active < 0;
+        public string LastFallbackReason { get; private set; } = "";
+        public string SceneArtId { get; private set; } = "";
         public double CurrentTime => HasActiveVideo ? players[active].time : 0;
         public float Speed { get; private set; } = 1f;
         public bool Muted { get; private set; } = false;
@@ -101,28 +104,48 @@ namespace Echo0317.Runtime
         }
         public void SetSceneArt(string sceneId)
         {
-            if (backgroundCache.TryGetValue(sceneId, out var cached)) { StaticImage.texture = cached; return; }
+            SceneArtId = sceneId ?? "";
+            // Never leave the *previous* act's image visible if the requested
+            // scene asset is missing or corrupt. The dark VideoStage is safe.
+            StaticImage.texture = null;
+            if (string.IsNullOrEmpty(sceneId)) return;
+            if (backgroundCache.TryGetValue(sceneId, out var cached))
+            {
+                StaticImage.texture = cached; return;
+            }
             var path = Path.Combine(Application.streamingAssetsPath, "Art", sceneId + ".png");
             if (!File.Exists(path)) return;
             var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            if (!texture.LoadImage(File.ReadAllBytes(path))) { Destroy(texture); return; }
+            if (!texture.LoadImage(File.ReadAllBytes(path)))
+            {
+                Destroy(texture);
+                return;
+            }
             texture.name = "Scene-" + sceneId;
             backgroundCache[sceneId] = texture;
             StaticImage.texture = texture;
         }
+        string ResolveApproved(string shotId)
+        {
+            // Only a director-approved final asset can suppress placeholder Foley.
+            if (!catalog.ShotTasks.TryGetValue(shotId, out var task) ||
+                task.status != "approved_final" || string.IsNullOrEmpty(task.path))
+                return null;
+            var rel = task.path.Replace('\\', '/');
+            if (Path.IsPathRooted(rel) || rel.Contains("..")) return null;
+            var path = Path.Combine(Application.streamingAssetsPath, "Media",
+                "Final", Path.GetFileName(rel));
+            return File.Exists(path) ? path : null;
+        }
+        public bool HasApprovedFinal(string shotId) => ResolveApproved(shotId) != null;
+        public bool HasPlayableAsset(string shotId) => Resolve(shotId) != null;
         string Resolve(string shotId)
         {
-            // Production rule: only director-approved assets can replace previews.
-            if (catalog.ShotTasks.TryGetValue(shotId, out var task) && task.status == "approved_final" && !string.IsNullOrEmpty(task.path))
-            {
-                var rel = task.path.Replace('\\', '/');
-                if (!Path.IsPathRooted(rel) && !rel.Contains(".."))
-                {
-                    var approved = Path.Combine(Application.streamingAssetsPath, "Media", "Final", Path.GetFileName(rel));
-                    if (File.Exists(approved)) return approved;
-                }
-            }
-            var previous = Path.Combine(Application.streamingAssetsPath, "Media", "Previs", shotId + ".mp4");
+            if (string.IsNullOrWhiteSpace(shotId)) return null;
+            var final = ResolveApproved(shotId);
+            if (final != null) return final;
+            var previous = Path.Combine(Application.streamingAssetsPath,
+                "Media", "Previs", shotId + ".mp4");
             return File.Exists(previous) ? previous : null;
         }
         void CancelPendingPreparation()
@@ -155,8 +178,16 @@ namespace Echo0317.Runtime
             CancelPendingPreparation();
             int generation = playback.Generation;
             var file = Resolve(clipId);
+            LastFallbackReason = "";
             OnClipChange?.Invoke(clipId);
-            if (file == null) { Halt(); return; }
+            if (file == null)
+            {
+                // Missing previews are a supported INTERNAL-ALPHA condition.
+                // Mark the scene as a static fallback without erasing its clip
+                // identity, so subtitles/status and Replay can still refer to it.
+                RetireToFallback("视频资源尚未制作：" + clipId);
+                return;
+            }
             // Old shot is held visually but silent while the new shot prepares.
             if (active >= 0) players[active].Pause();
             preparingSlot = active == 0 ? 1 : 0;
@@ -231,22 +262,29 @@ namespace Echo0317.Runtime
                 prepareRoutine = null;
             }
         }
-        void FailCurrentRequest(string reason)
+        void RetireToFallback(string reason)
         {
-            // Do not StopCoroutine() on the coroutine that is currently executing.
-            // Retire the request, clear all decoder surfaces and show the existing
-            // scene art while leaving narration and choices available.
-            playback.Halt();
+            playback.Skip(); // invalidate pending decoder tokens; retain clip ID
             prepareRoutine = null;
             preparingSlot = -1;
             for (int i = 0; i < players.Length; i++)
             {
-                players[i].sendFrameReadyEvents = false;
-                players[i].Stop();
-                groups[i].alpha = 0;
+                if (players[i] != null)
+                {
+                    players[i].sendFrameReadyEvents = false;
+                    players[i].Stop();
+                }
+                if (groups[i] != null) groups[i].alpha = 0f;
             }
             active = -1;
+            LastFallbackReason = reason;
             OnClipError?.Invoke(reason);
+        }
+        void FailCurrentRequest(string reason)
+        {
+            // Retire a failed decode but keep the current scene identity for
+            // accessibility subtitles and a valid manual Replay request.
+            RetireToFallback(reason);
         }
         public void Replay()
         {
@@ -295,6 +333,7 @@ namespace Echo0317.Runtime
         public void Halt()
         {
             playback.Halt();
+            LastFallbackReason = "";
             CancelPendingPreparation();
             // Returning to the menu invalidates all pending video callbacks.
             for (int i = 0; i < 2; i++)
