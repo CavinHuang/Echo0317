@@ -313,6 +313,11 @@ namespace Echo0317.Runtime
                 var inspected = EchoHotspotInvestigation.Inspect(catalog, state, id);
                 state = inspected;
                 if (!wasInspected) Persist();
+                // Refresh the real story text after inspecting the film. Calling
+                // Render() here would unmount the current paused film frame.
+                var scene = catalog.Nodes[state.node];
+                ui.Body.text = string.Join("\n\n", EchoScenePresentation.Lines(
+                    scene, state.flags, state.attempts, state.inspections));
                 bool verified = EchoHotspotInvestigation.IsEvidenceVerified(catalog, state, id);
                 ui.PlayDossierSound(wasInspected ? EchoDossierCue.Reject : EchoDossierCue.Pin, muted);
                 investigationOverlay.Show(hotspots, state, id, !wasInspected, verified,
