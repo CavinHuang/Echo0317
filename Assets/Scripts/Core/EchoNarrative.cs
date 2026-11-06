@@ -20,7 +20,7 @@ namespace Echo0317.Core
     [Serializable] public class SaveEnvelope
     {
         public string game = "0317-echo";
-        public int format = 6;
+        public int format = 7;
         public string storyRevision = "v3.0";
         public string exportedAt = "";
         public GameProgress state;
@@ -56,6 +56,19 @@ namespace Echo0317.Core
             return (c.requires == null || c.requires.All(flags.Contains)) &&
                 (c.needsAny == null || c.needsAny.Length == 0 || c.needsAny.Any(flags.Contains)) &&
                 (c.forbids == null || c.forbids.All(f => !flags.Contains(f)));
+        }
+        /// <summary>
+        /// Evaluate actual case conclusions as well as acquired story evidence.
+        /// This is used by both game UI and the transition authority. Replaying
+        /// history checks the SAME prerequisites at their original step, so a
+        /// deduction made after a choice cannot retroactively unlock it.
+        /// </summary>
+        public static bool AllowedWithDeductions(GameCatalog catalog, StoryChoice choice, GameProgress state)
+        {
+            if (choice == null || state == null ||
+                !Allowed(choice, state.flags ?? Array.Empty<string>())) return false;
+            return choice.requiresSolved == null || choice.requiresSolved.All(id =>
+                IsSolved(catalog, state, id));
         }
         public static StoryChoice[] Choices(StoryNode n)
         {
@@ -122,6 +135,27 @@ namespace Echo0317.Core
                 if (r.correct == a.answer) solved.Add(a.rule);
                 prior = a.at;
             }
+            // The gate is part of the canon, not just a disabled UI Button.
+            // A forged save with a past locked choice or a deduction recorded
+            // only AFTER that choice is invalid. Inspect the historical "at"
+            // timestamp instead of the latest solved status.
+            for (int i = 0; i < canonical.Length; i++)
+            {
+                var step = canonical[i];
+                var selected = Choices(g.Nodes[step.from])
+                    .Single(c => c.to == step.to &&
+                        (c.label == step.choice ||
+                         (step.choice.Length == 0 &&
+                          Choices(g.Nodes[step.from]).Count(x => x.to == step.to) == 1)));
+                foreach (var ruleId in selected.requiresSolved ?? Array.Empty<string>())
+                {
+                    var required = g.Rules[ruleId];
+                    if (!attempts.Any(a => a.rule == ruleId &&
+                        a.answer == required.correct && a.at <= i))
+                        throw new InvalidOperationException(
+                            "剧情曾绕过未完成的推理：" + ruleId);
+                }
+            }
             var inspections = EchoHotspotInvestigation.Validate(g, canonical, raw.inspections);
             return new GameProgress { node = result.Node, flags = result.Flags, history = canonical, endings = endings,
                 attempts = attempts.Select(a => new Attempt { rule = a.rule, answer = a.answer, at = a.at }).ToArray(),
@@ -130,7 +164,7 @@ namespace Echo0317.Core
         public static GameProgress Advance(GameCatalog g, GameProgress progress, StoryChoice choice)
         {
             var p = Normalize(g, progress);
-            if (choice == null || !g.Nodes.ContainsKey(choice.to) || !Allowed(choice, new HashSet<string>(p.flags)))
+            if (choice == null || !g.Nodes.ContainsKey(choice.to) || !AllowedWithDeductions(g, choice, p)
                 throw new InvalidOperationException("不可用的剧情选择");
             if (!Choices(g.Nodes[p.node]).Any(c => c.to == choice.to && c.label == choice.label))
                 throw new InvalidOperationException("不能跨过剧情节点");
