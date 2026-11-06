@@ -222,6 +222,12 @@ static class Program
                             caseCard.AcquiredCount == rule.clues.Count(state.flags.Contains),
                             "caseboard availability does not match actual evidence");
                         if (!ready) continue;
+                        if (EchoNarrative.IsSolved(catalog, state, rule.id))
+                        {
+                            Require(!EchoInvestigation.PairMatches(catalog,state,rule.id,rule.clues),
+                                "a solved case must not allow duplicate proof submissions");
+                            continue;
+                        }
                         Require(EchoInvestigation.PairMatches(catalog, state, rule.id, rule.clues),
                             "real available two-clue pair must unlock its case");
                         Require(!EchoInvestigation.PairMatches(catalog, state, rule.id,
