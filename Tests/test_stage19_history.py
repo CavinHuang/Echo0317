@@ -20,7 +20,9 @@ class Stage19HistoryContract(unittest.TestCase):
         self.assertIn('ui.OnHistory = () => { historyPage = 0; Open("history"); };', runtime)
         self.assertIn('if(Input.GetKeyDown(KeyCode.L))', runtime)
         self.assertIn('case "history": ShowHistory(); break;', runtime)
-        self.assertIn('if (playing && !paused) { paused = true; video.Pause(); }', runtime)
+        self.assertIn('if (playing && !paused)', runtime)
+        self.assertIn('paused = true; video.Pause();', runtime)
+        self.assertIn('firstActFoley?.SetPaused(true);', runtime)
         self.assertIn('historyPage = 0;', runtime)
         self.assertIn('本轮选择 → ', runtime)
 
