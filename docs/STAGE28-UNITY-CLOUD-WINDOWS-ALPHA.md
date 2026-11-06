@@ -41,7 +41,15 @@
 
 6. 若有 **Scenes** override，留空以便使用脚本自动注册的唯一场景（不要填一个不存在的 Unity 场景）。勾选或配置 EditMode/PlayMode 测试（根据当前账号方案和平台支持情况）。
 7. 初次先关闭 Auto-build，手动 Run Build，对照日志确认 `[Echo0317][Unity Build Automation] PRE-EXPORT VERIFIED`，再下载它**确实生成的 Windows EXE 及 Data 目录**。
-8. 真正生成的云构建包还需要在 Windows 上运行项目的 `Tools/qa-native-windows.ps1` 四结局自检和交互式界面冒烟测试；云构建本身通过不等于 Player 完整验收通过。
+8. 云构建成功后，下载生成的**真实 Windows ZIP**，在 Windows 10/11 的游戏源码根目录执行（脚本支持自动识别下载包内默认的不同 EXE 名称，并归一化数据目录）：
+
+   ```powershell
+   .\\Tools\\verify-cloud-player-windows.ps1 -ArtifactZip "C:\\Users\\YOU\\Downloads\\Echo0317-Windows-Internal-Alpha.zip"
+   ```
+
+   它会解压、检查必须有对应 UnityPlayer.dll 和 `*_Data` 的真实 Unity Windows Player，将其复制到 `Builds/Windows` 后运行**编译后的 EXE 本人**进行四结局与存档 QA，调用 `Tools/pack-hosted-alpha.py` 以 Windows x64 PE 头、资源 SHA-256 和真实 QA 日志做签发，最后输出 `Builds/Echo0317-Windows-x64-internal-hosted.zip`。缺少真实 EXE、数据或原生 QA 报告必须失败。
+
+9. 云构建与无界面 QA 通过后，仍需在 Windows 图形桌面测试影片、音效、手柄、保存和不同分辨率；这些不是一份命令行报告能够假装覆盖的。
 
 ## 结果状态
 
