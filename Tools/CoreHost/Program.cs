@@ -24,6 +24,42 @@ static class Program
             var catalog = GameCatalog.LoadFromStreamingAssets();
             Require(catalog.Nodes.Count == 55 && catalog.Rules.Count == 5, "narrative catalog missing");
             Require(catalog.Hotspots.Count == 23, "investigation hotspot catalog missing");
+            // Stage 31: authored first-act Foley and subtitle behavior run
+            // against the actual Unity-shared C# classes, not a Python mock.
+            Require(EchoFirstActFoleyPlan.Valid(),
+                "first act audio schedule contains invalid timings or gains");
+            var firstActIds = catalog.Nodes.Values.Where(n => n.chapterIndex == 1)
+                .Select(n => n.id).Distinct().ToArray();
+            Require(firstActIds.Length == 10 &&
+                firstActIds.All(id => EchoFirstActFoleyPlan.ForNode(id).Length > 0),
+                "all ten playable first-act scenes need their own sound schedule");
+            var knocks = EchoFirstActFoleyPlan.ForNode("c1_knock");
+            Require(knocks.Length == 3 && knocks.All(c => c.Name == "door-knock") &&
+                knocks[0].AtSeconds < knocks[1].AtSeconds &&
+                knocks[1].AtSeconds < knocks[2].AtSeconds,
+                "three door knocks must occur in authored temporal order");
+            var firstActSoundCopy = EchoFirstActFoleyPlan.ForNode("intro");
+            firstActSoundCopy[0].Gain = 999f;
+            Require(EchoFirstActFoleyPlan.ForNode("intro")[0].Gain < .4f,
+                "Foley schedule must be immutable from outside the catalog");
+            Require(EchoFirstActFoleyPlan.ForNode("ending_merge").Length == 0,
+                "completed ending scenes must not accidentally replay first-act sound");
+            Require(EchoSubtitlePresentation.Select(false, false, false,
+                    "should not display", new[]{"final line"}) == "" &&
+                EchoSubtitlePresentation.Select(true, true, false,
+                    "stale preview cue", new[]{"final line"}) == "",
+                "disabled/loading captions must never reveal old or future dialogue");
+            Require(EchoSubtitlePresentation.Select(true, false, true,
+                    "actual timed cue", new[]{"final line"}) == "actual timed cue" &&
+                EchoSubtitlePresentation.Select(true, false, true,
+                    "", new[]{"final line"}) == "",
+                "active or paused real movie must show timed cues, not last narrative line");
+            Require(EchoSubtitlePresentation.Select(true, false, false,
+                    "stale preview cue", new[]{"","scene fallback"}) == "scene fallback" &&
+                EchoSubtitlePresentation.Select(true, false, false,
+                    "old", Array.Empty<string>()) == "",
+                "missing or finished video must show only current scene prose");
+
             var firstActReactions = EchoScenePresentation.Lines(catalog.Nodes["c1_hook"],
                 new[]{"tested_password"}, Array.Empty<Attempt>());
             Require(firstActReactions.Any(line=>line.Contains("知道她过去怎么说")) &&
