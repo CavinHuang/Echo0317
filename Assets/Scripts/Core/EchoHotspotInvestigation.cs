@@ -12,6 +12,8 @@ namespace Echo0317.Core
     [Serializable] public sealed class HotspotDefinition
     {
         public string id, node, label, description, evidenceId, icon;
+        // Optional chapter-local clue comparison; never mints a story flag.
+        public string crossCheckId, crossCheckText;
         public float x, y, w, h;
         public bool required;
         public string[] requiresFlags;
