@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
-      - name: Fail early when Unity activation is missing
+      - name: Verify authorized Unity activation is configured
         shell: bash
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -54,12 +54,22 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
+          # Test presence only, never echo credentials, serials or .ulf files.
+          # Do not try to download someone else's license: Hosted CI needs
+          # a license legitimately provisioned for this runner.
           if [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
-            echo 'Unity account secrets are not configured (UNITY_EMAIL / UNITY_PASSWORD).' >&2; exit 1
+            echo 'BLOCKED: Authorized Unity account credentials are not configured in GitHub Actions Secrets.' >&2
+            echo 'Unity Personal: recommended route is an already activated Unity Hub + same-user Windows self-hosted runner.' >&2
+            echo 'See docs/STAGE27-LEGAL-UNITY-ACTIVATION.md.' >&2
+            exit 1
           fi
-          if [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_SERIAL" ]; then
-            echo 'Missing UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro).' >&2; exit 1
+          if [ -z "$UNITY_SERIAL" ] && [ -z "$UNITY_LICENSE" ]; then
+            echo 'BLOCKED: no authorized Unity serial/license is configured for hosted CI.' >&2
+            echo 'Unity Personal manual activation is not supported by Unity 6.3 official documentation; use Unity Hub locally.' >&2
+            echo 'See docs/STAGE27-LEGAL-UNITY-ACTIVATION.md.' >&2
+            exit 1
           fi
+          echo 'A Unity credential configuration is present; validity will only be established by executing the real Editor.'
       - name: Run Unity Editor tests with license
         id: unitytests
         uses: game-ci/unity-test-runner@v4
