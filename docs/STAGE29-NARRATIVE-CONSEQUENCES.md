@@ -31,6 +31,7 @@
 | `Tools/CoreHost/Program.cs` | 真实 .NET 8 编译执行四结局、伪造存档拒绝、复盘、旧档迁移 |
 | `Assets/Scripts/Runtime/EchoNativeQa.cs` | 真正编译后的 Windows Player 需核验这道推理才可走审计结局 |
 | `Assets/Tests/EditMode/EchoStage29NarrativeConsequencesTests.cs` | Unity 原生编辑模式的剧情/推理/迁移单测（尚未实测） |
+| `Assets/Tests/EditMode/EchoStage29ProjectBootstrapTests.cs` | Unity Editor 首次导入后验证真实 `.unity` 入口场景存在、AssetDatabase 已导入、Build Settings 与 Player 信息一致（尚未执行） |
 | `Tests/test_stage29_narrative_consequences.py` | 数据/核心/UI 接线回归 |
 
 ## 当前明确未完成的部分
