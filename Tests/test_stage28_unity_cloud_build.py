@@ -62,7 +62,7 @@ class Stage28UnityCloudAutomation(unittest.TestCase):
         for token in (
             "200", "Windows", "Build Automation", "GitHub", "main",
             "6000.3.2f1", "Echo0317.Editor.EchoCloudBuild.PreExport",
-            "Build Automation", "Unity ID", "还需要",
+            "Build Automation", "Unity ID", "但必须先",
         ):
             self.assertIn(token, doc)
         self.assertIn("未通过 Unity Dashboard 创建 Cloud Project", doc)
