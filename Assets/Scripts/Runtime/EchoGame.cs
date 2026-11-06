@@ -367,9 +367,10 @@ namespace Echo0317.Runtime
                 for (int i=0;i<options.Length;i++)
                 {
                     var choice = options[i];
-                    bool usable = EchoNarrative.Allowed(choice, state.flags);
+                    bool usable = EchoNarrative.AllowedWithDeductions(catalog, choice, state);
                     string label = (i+1) + ".  " + choice.label;
-                    if (!usable) label += "    [条件未满足]";
+                    if (!usable) label += "    [" +
+                        (string.IsNullOrEmpty(choice.lockedLabel) ? "条件未满足" : choice.lockedLabel) + "]";
                     ui.AddChoice(label, () => Choose(n.id, choice), usable);
                 }
                 var sceneHotspots = EchoHotspotInvestigation.Visible(catalog, state);
