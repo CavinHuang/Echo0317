@@ -108,10 +108,13 @@ namespace Echo0317.Runtime
             // Never leave the *previous* act's image visible if the requested
             // scene asset is missing or corrupt. The dark VideoStage is safe.
             StaticImage.texture = null;
+            StaticImage.color = Color.clear;
             if (string.IsNullOrEmpty(sceneId)) return;
             if (backgroundCache.TryGetValue(sceneId, out var cached))
             {
-                StaticImage.texture = cached; return;
+                StaticImage.texture = cached;
+                StaticImage.color = Color.white;
+                return;
             }
             var path = Path.Combine(Application.streamingAssetsPath, "Art", sceneId + ".png");
             if (!File.Exists(path)) return;
@@ -124,6 +127,7 @@ namespace Echo0317.Runtime
             texture.name = "Scene-" + sceneId;
             backgroundCache[sceneId] = texture;
             StaticImage.texture = texture;
+            StaticImage.color = Color.white;
         }
         string ResolveApproved(string shotId)
         {
