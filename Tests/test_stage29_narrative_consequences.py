@@ -43,7 +43,7 @@ class Stage29Consequences(unittest.TestCase):
         self.assertIn('acquired.Contains(reaction.unless)',renderer)
         ui=self.content("Assets/Scripts/Runtime/EchoGame.cs")
         recap=self.content("Assets/Scripts/Core/EchoDialogueHistory.cs")
-        self.assertIn('EchoScenePresentation.Lines(n, state.flags, state.attempts)',ui)
+        self.assertIn('EchoScenePresentation.Lines(n, state.flags, state.attempts, state.inspections)',ui)
         self.assertIn('EchoScenePresentation.Lines(node, points[i].Flags,',recap)
         self.assertIn('state.attempts.Where(a => a.at <= i)',recap)
         self.assertNotIn('Lines = (string[])(node.lines?.Clone()',recap)
