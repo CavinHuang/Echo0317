@@ -9,7 +9,14 @@ on:
         default: internal
         required: true
 # Requires an explicitly configured, self-hosted Windows runner with Unity 6.3 LTS,
-# Windows Build Support and a valid license. No credentials are committed.
+# Windows Build Support and a valid license activated by the SAME Windows account
+# as the runner. Unity Personal: log in to Unity Hub on this machine.
+# Never store or print credentials/license files in the repository or CI logs.
+permissions:
+  contents: read
+concurrency:
+  group: echo0317-personal-native
+  cancel-in-progress: false
 jobs:
   native-build:
     runs-on: [self-hosted, Windows, X64, unity-6-3]
@@ -22,6 +29,13 @@ jobs:
           python Tests/test_export.py
           python Tests/test_release_assets.py
           python Tests/test_release_gate.py --profile internal
+      - name: Verify locally installed and legitimately activated Unity Editor
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: |
+          .\Tools\prepare-unity-windows.ps1 -VerifyEditor
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Unity Editor tests and Windows standalone build
         shell: pwsh
         env:
@@ -32,6 +46,7 @@ jobs:
           } else {
             .\Tools\build-alpha-windows.ps1 -SkipInteractiveSmoke
           }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload logs and test reports even after failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,6 +59,7 @@ jobs:
             Builds/native-game-qa.json
             Builds/stage16-alpha-evidence.json
             Builds/player-smoke-success.json
+            Builds/unity-local-activation-preflight.json
           if-no-files-found: warn
       - name: Upload verified Windows build
         uses: actions/upload-artifact@v4
