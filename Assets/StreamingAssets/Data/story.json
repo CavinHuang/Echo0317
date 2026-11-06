@@ -22,7 +22,16 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "intro_phone",
+          "text": "你按住短信查看详情：03:22 是设备显示的发送时间，而不是已核验的网络投递记录。"
+        },
+        {
+          "ifInspected": "intro_photo",
+          "text": "你把墙上的合照放大。照片能保留一个瞬间，却不能证明林岚现在的想法。"
+        }
+      ]
     },
     {
       "id": "warning",
@@ -77,7 +86,12 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "peephole_shadow",
+          "text": "你沿着应急灯逐盏核对：影子追向了光源。你把这处视觉矛盾记进调查手记。"
+        }
+      ]
     },
     {
       "id": "c1_photo",
@@ -98,7 +112,12 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "photo_back",
+          "text": "你在照片背面找到了重描的日期。即使笔迹是真的，写下的约定也不能代替当下的答复。"
+        }
+      ]
     },
     {
       "id": "c1_receipt",
@@ -119,7 +138,12 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "receipt_queue",
+          "text": "你保存了本地队列的签名尾码 46。显示时刻和实际发送设备必须分开核查。"
+        }
+      ]
     },
     {
       "id": "c1_knock",
@@ -175,7 +199,12 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "door_password",
+          "text": "你又看了一眼门禁终端：口令正确只说明对方知道这句话，并不能证明她就是同一个人。"
+        }
+      ]
     },
     {
       "id": "c1_playvoice",
@@ -196,7 +225,12 @@
       "nextLabel": "继续剧情",
       "choices": [],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "voice_recorder",
+          "text": "旧录音的拼接处被你标记了。缺失的最后一问，比熟悉的音色更值得追查。"
+        }
+      ]
     },
     {
       "id": "c1_trydoor",
@@ -256,6 +290,26 @@
         {
           "if": "used_recording",
           "text": "旧录音后面那段被截掉的提问，也许比最后四个字更重要。"
+        },
+        {
+          "ifInspected": "peephole_shadow",
+          "text": "你记得那道追着灯光走的影子。门外的熟悉声线，仍然无法排除感知异常。"
+        },
+        {
+          "ifInspected": "door_password",
+          "text": "口令与停顿的差异被你分别记录。对上秘密答案，并不等于对方拥有过去的全部记忆。"
+        },
+        {
+          "ifInspected": "photo_back",
+          "text": "照片背面的日期被改写过。你不再把一张合照当成她今天必须答应的承诺。"
+        },
+        {
+          "ifInspected": "receipt_queue",
+          "text": "本地队列的签名尾码 46 仍亮在你手机里。你决定先保留原始记录，而不是追随显示时间。"
+        },
+        {
+          "ifInspected": "voice_recorder",
+          "text": "录音剪接处的细小波形仍在你眼前。你第一次想问她：被剪掉的那句提问是什么？"
         }
       ],
       "choices": [],
@@ -289,7 +343,20 @@
         }
       ],
       "entryFlags": [],
-      "reactions": []
+      "reactions": [
+        {
+          "ifInspected": "peephole_shadow",
+          "text": "你试着将眼前的人影与电话录音分开看待：视觉异常和声音相似都不是身份本身。"
+        },
+        {
+          "ifInspected": "voice_recorder",
+          "text": "你记得录音中断处的拼接缝。此刻再听旧电话，你更想检查录制来源而非只比较声线。"
+        },
+        {
+          "ifInspected": "receipt_queue",
+          "text": "你保存的尾码 46 提醒你：时间显示可能来自本地队列，这通电话也需要独立来源证明。"
+        }
+      ]
     },
     {
       "id": "c2_timestamp",
