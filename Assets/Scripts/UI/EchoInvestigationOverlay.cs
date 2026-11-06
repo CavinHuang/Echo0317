@@ -228,8 +228,14 @@ namespace Echo0317.UI
             else
             {
                 ResultTitle.text=selected.label;
-                ResultBody.text=selected.description;
-                ResultStatus.text=verified ? "档案证据已核实 · " +
+                var comparison=EchoHotspotInvestigation.CrossCheck(progress,selected);
+                ResultBody.text=selected.description +
+                    (string.IsNullOrEmpty(comparison) ? "" :
+                        "\n\n【线索交叉核验】\n" + comparison);
+                ResultStatus.text=!string.IsNullOrEmpty(comparison) ?
+                    (verified ? "交叉核验成立 · 档案证据已核实" :
+                        "交叉核验已记录 · 尚需剧情证据确认") :
+                    verified ? "档案证据已核实 · " +
                     (selected.evidenceId??"") : newRecord ?
                     "现场观察已记录 · 待剧情证据核实" :
                     "这个目标已经检查过，不会重复获取记录";
