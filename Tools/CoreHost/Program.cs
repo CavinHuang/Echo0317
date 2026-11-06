@@ -115,6 +115,82 @@ static class Program
                 inspectedPeephole.flags.SequenceEqual(atPeephole.flags),
                 "inspecting should not alter the existing evidence archive");
 
+            // Stage30: the first-act detective sequence now changes the
+            // dialogue the player actually sees, but not the canonical flags.
+            var introExamined = EchoHotspotInvestigation.Inspect(catalog,
+                EchoNarrative.Fresh(), "intro_phone");
+            Require(EchoScenePresentation.Lines(catalog.Nodes["intro"],
+                introExamined.flags, introExamined.attempts,
+                introExamined.inspections).Any(line => line.Contains("网络投递记录")),
+                "inspect intro phone must visibly alter the current film story");
+            var introCompared = EchoHotspotInvestigation.Inspect(catalog,
+                introExamined, "intro_photo");
+            Require(EchoHotspotInvestigation.CrossCheck(introCompared,
+                    catalog.Hotspots["intro_phone"]).Contains("两种记录互相担保"),
+                "two real introductory observations must cross-verify");
+            Require(EchoHotspotInvestigation.CrossCheck(EchoNarrative.Fresh(),
+                    catalog.Hotspots["intro_phone"]) == "" &&
+                EchoHotspotInvestigation.CrossCheck(introExamined,
+                    catalog.Hotspots["intro_phone"]) == "",
+                "unvisited comparison reference must not be fabricated");
+            var warningObserved = EchoNarrative.Advance(catalog, introCompared,
+                EchoNarrative.Choices(catalog.Nodes["intro"]).Single());
+            var peepholeObserved = EchoNarrative.Advance(catalog, warningObserved,
+                EchoNarrative.Choices(catalog.Nodes["warning"])
+                    .Single(choice=>choice.to=="c1_peephole"));
+            peepholeObserved = EchoHotspotInvestigation.Inspect(catalog,
+                peepholeObserved, "peephole_shadow");
+            var knockObserved = EchoNarrative.Advance(catalog,peepholeObserved,
+                EchoNarrative.Choices(catalog.Nodes["c1_peephole"]).Single());
+            var passwordObserved = EchoNarrative.Advance(catalog,knockObserved,
+                EchoNarrative.Choices(catalog.Nodes["c1_knock"])
+                    .Single(choice=>choice.to=="c1_password"));
+            var noForcedProof = passwordObserved.flags.ToArray();
+            passwordObserved = EchoHotspotInvestigation.Inspect(catalog,passwordObserved,
+                "door_password");
+            Require(noForcedProof.SequenceEqual(passwordObserved.flags),
+                "examining a door password must not forge new narrative evidence");
+            Require(EchoHotspotInvestigation.CrossCheck(passwordObserved,
+                    catalog.Hotspots["door_password"]).Contains("两条线索"),
+                "observed shadow and password must yield the authored contradiction");
+            var hookObserved = EchoNarrative.Advance(catalog,passwordObserved,
+                EchoNarrative.Choices(catalog.Nodes["c1_password"]).Single());
+            var hookLines = EchoScenePresentation.Lines(catalog.Nodes["c1_hook"],
+                hookObserved.flags,hookObserved.attempts,hookObserved.inspections);
+            Require(hookLines.Any(line=>line.Contains("追着灯光走的影子")) &&
+                hookLines.Any(line=>line.Contains("口令与停顿的差异")),
+                "actual first-act inspection choices must affect follow-up dialogue");
+            var noObservationLines = EchoScenePresentation.Lines(catalog.Nodes["c1_hook"],
+                hookObserved.flags,hookObserved.attempts);
+            Require(!noObservationLines.Any(line=>line.Contains("追着灯光走的影子")),
+                "story transcript cannot imply an unseen inspection");
+            var inspectedJournal = EchoDialogueHistory.Read(catalog,hookObserved);
+            Require(inspectedJournal.Entries.Last().Lines.Any(line=>
+                line.Contains("口令与停顿的差异")),
+                "dialogue history must reproduce the observation-dependent scene");
+            var rewoundFirstAct = EchoNarrative.Rewind(catalog,hookObserved,3);
+            Require(EchoHotspotInvestigation.WasInspected(rewoundFirstAct,"peephole_shadow") &&
+                !EchoHotspotInvestigation.WasInspected(rewoundFirstAct,"door_password") &&
+                EchoHotspotInvestigation.CrossCheck(rewoundFirstAct,
+                    catalog.Hotspots["door_password"]) == "",
+                "rewinding must discard later first-act discoveries and comparisons");
+            var tempFirstAct = Path.Combine(Path.GetTempPath(),
+                "echo-stage30-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var store = new EchoSaves(catalog,tempFirstAct);
+                store.SaveSlot(1,hookObserved);
+                var restored = store.LoadSlot(1);
+                Require(EchoHotspotInvestigation.CrossCheck(restored,
+                    catalog.Hotspots["door_password"]).Length > 0 &&
+                    restored.inspections.Length == hookObserved.inspections.Length,
+                    "saved observations must fully survive a real save slot roundtrip");
+            }
+            finally
+            {
+                if(Directory.Exists(tempFirstAct)) Directory.Delete(tempFirstAct,true);
+            }
+
             var pending = new Queue<(string node, HashSet<string> flags)>();
             pending.Enqueue(("intro", new HashSet<string>()));
             var seen = new HashSet<string>();
