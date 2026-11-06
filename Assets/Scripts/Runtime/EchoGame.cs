@@ -962,7 +962,9 @@ namespace Echo0317.Runtime
             string content=catalog.Cue(video.CurrentClip,video.CurrentTime);
             if(string.IsNullOrEmpty(content)&&!video.IsPlaying)
             {
-                var n=catalog.Nodes[state.node];content=n.lines.Length>0?n.lines[n.lines.Length-1]:"";
+                var n=catalog.Nodes[state.node];
+                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts);
+                content=rendered.Length>0?rendered[rendered.Length-1]:"";
             }
             ui.Subtitle.text=content;
         }
