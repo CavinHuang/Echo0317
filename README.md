@@ -1,3 +1,17 @@
+# 《03:17 · 回声》Stage 28｜官方免费 Unity Cloud Windows 构建路径
+
+Unity 官方 **Build Automation** 可以直接从 GitHub `main` 编译 Windows x64 游戏，**无需将个人 Unity License 文件放入 GitHub Actions**。2026 年免费 DevOps 方案包含 Windows 计算构建分钟额度；具体可用分钟和费用以登录后的 Unity Dashboard 为准。
+
+**已实现源码接线：** `Echo0317.Editor.EchoCloudBuild.PreExport` 在 Unity Cloud 真正编译 C# 后，自动创建入口场景并验证 Unity 6000.3、Windows x64、55 个剧情节点、5 道谜题、23 个热点和已打包的 18 张 PNG。云端构建产物可以下载后使用 `Tools/verify-cloud-player-windows.ps1 -ArtifactZip <下载的Windows构建ZIP>` 在 Windows 上真正运行四结局原生 QA，再生成通过验证的分发包。不会通过文件伪造绕过 Unity 授权。
+
+**授权边界：** 还需项目所有者通过合法 Unity ID 在 [Unity Dashboard](https://cloud.unity.com/) 开启 DevOps 免费计划并授权 GitHub 仓库；当前没有此登录或云构建执行结果，**Windows EXE 尚未生成**。
+
+- [Stage 28 Unity Cloud 创建配置步骤](docs/STAGE28-UNITY-CLOUD-WINDOWS-ALPHA.md)
+- [Unity Cloud 编译前真实资源检查](Assets/Editor/EchoCloudBuild.cs)
+- [下载后的 Windows Player 原生验收工具](Tools/verify-cloud-player-windows.ps1)
+
+---
+
 # 《03:17 · 回声》Stage 27｜Unity Windows Alpha 合法授权与构建通路
 
 **当前首要目标仍是真正可运行的 Windows EXE。** 已核验 GitHub 托管 Unity CI 的实际授权缺口：原生 C# CoreHost 通过，但 Unity 测试因缺少授权配置没有运行。**不要从互联网“捞”他人的 Unity License/账号/密钥。** Unity 官方 6.3 文档要求 Unity Personal 使用 Unity Hub 登录激活；本轮实现官方支持的**免费 Personal + 本机 Windows 构建 / 同用户自托管 GitHub Actions**路线，保留已有合法付费授权的 GitHub Hosted GameCI 路线。
