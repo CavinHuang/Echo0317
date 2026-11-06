@@ -18,6 +18,7 @@ namespace Echo0317.Runtime
         EchoGameUI ui;
         EchoInvestigationOverlay investigationOverlay;
         EchoVideoDirector video;
+        EchoFirstActFoley firstActFoley;
         GameProgress state;
         bool playing, paused, investigating, captionsEnabled = true, muted, fullscreen = true;
         float subtitleScale = 1f;
@@ -73,10 +74,17 @@ namespace Echo0317.Runtime
                 ui.SetSubtitleOptions(captionsEnabled, subtitleScale);
                 video = gameObject.AddComponent<EchoVideoDirector>();
                 video.Initialize(catalog, ui.VideoLayer);
+                firstActFoley = gameObject.AddComponent<EchoFirstActFoley>();
+                firstActFoley.SetMuted(muted);
                 video.SetMuted(muted);
                 video.SetSpeed(preferences.Current.speed);
                 ApplyDisplaySettings();
-                video.OnClipError = (err) => Debug.LogWarning("[Echo0317] video fallback: " + err);
+                video.OnClipError = (err) => {
+                    Debug.LogWarning("[Echo0317] video fallback: " + err);
+                    if (playing && ui != null)
+                        ui.FilmStatus.text = "静态场景 · " + err +
+                            "  |  原剧情和调查仍可继续 · R 重试";
+                };
                 video.OnEnded = UpdateCaption;
                 ui.OnContinue = Continue;
                 ui.OnNewGame = RequestNewGame;
@@ -145,7 +153,11 @@ namespace Echo0317.Runtime
                 NewGame();
                 return;
             }
-            if (playing && !paused) { paused = true; video.Pause(); }
+            if (playing && !paused)
+            {
+                paused = true; video.Pause();
+                firstActFoley?.SetPaused(true);
+            }
             modalFlow.Confirm("");
             ui.SetModal(true);
             ui.ClearModal();
@@ -159,7 +171,8 @@ namespace Echo0317.Runtime
             StopSceneInvestigation(false);
             var previous = state?.endings ?? Array.Empty<string>();
             ui.SetModal(false); modalFlow.Reset();
-            video.Halt(); ui.HideDiscovery(); discoveryUntil = 0f;
+            video.Halt(); firstActFoley?.StopScene();
+            ui.HideDiscovery(); discoveryUntil = 0f;
             state = EchoNarrative.Fresh(); state.endings = previous.Distinct().ToArray();
             historyPage = 0;
             ResetInvestigation();
@@ -176,12 +189,14 @@ namespace Echo0317.Runtime
             playing = true; paused = false;
             ui.SetGameVisible(true);
             video.SetMuted(muted);
+            firstActFoley?.SetMuted(muted);
             Render();
         }
         void Pause()
         {
             if (!playing) return;
             paused = true; video.Pause();
+            firstActFoley?.SetPaused(true);
             Open("pause");
         }
         void ReturnToMenu()
@@ -189,7 +204,8 @@ namespace Echo0317.Runtime
             StopSceneInvestigation(false);
             // Returning to the menu must not Resume() the last film for one frame.
             ui.SetModal(false); modalFlow.Reset(); playing = false; paused = false;
-            video.Halt(); video.SetSceneArt("S01"); ui.HideDiscovery(); discoveryUntil = 0f;
+            video.Halt(); firstActFoley?.StopScene();
+            video.SetSceneArt("S01"); ui.HideDiscovery(); discoveryUntil = 0f;
             ui.SetGameVisible(false); ui.HideDiscovery(); RefreshMenu();
         }
         void ResetInvestigation()
@@ -207,7 +223,11 @@ namespace Echo0317.Runtime
         {
             ui.SetModal(false);
             modalFlow.Reset();
-            if (paused) { paused=false;video.Resume(); }
+            if (paused)
+            {
+                paused = false; video.Resume();
+                firstActFoley?.SetPaused(false);
+            }
         }
         void HandleBack()
         {
@@ -293,6 +313,7 @@ namespace Echo0317.Runtime
             if (hotspots.Length == 0) return;
             investigating = true;
             video.Pause();
+            firstActFoley?.SetPaused(true);
             // Use the actual 16:9 VideoLayer as the coordinate parent of the
             // hotspots. No full-screen scaling or fake duplicate film is used.
             investigationOverlay.MountFilm(ui.VideoLayer);
@@ -341,7 +362,10 @@ namespace Echo0317.Runtime
             ui.SetInvestigationInputLocked(false);
             investigationOverlay.Hide();
             if (resumeFilm && playing && !paused && !ui.Modal.activeSelf)
+            {
                 video.Resume();
+                firstActFoley?.SetPaused(false);
+            }
         }
 
         void Render()
@@ -356,8 +380,17 @@ namespace Echo0317.Runtime
             string clip = ClipFor(n);
             video.SetSceneArt(SceneFor(n));
             video.Show(clip);
-            bool isApproved = catalog.ShotTasks.TryGetValue(clip, out var record) && record.status == "approved_final";
-            ui.FilmStatus.text = "镜头 " + clip + "  ·  " + (isApproved ? "已批准影片" : "占位 / 动态分镜") + "   |   R 重播 / K 跳过画面";
+            bool approved = video.HasApprovedFinal(clip);
+            string mediaStatus = video.IsFallback ? "静态场景 · 镜头未制作" :
+                approved ? "已批准正式镜头" :
+                video.HasPlayableAsset(clip) ? "预演影片 · 非正式素材" :
+                    "静态场景 · 预演影片不可用";
+            ui.FilmStatus.text = "镜头 " + clip + "  ·  " + mediaStatus +
+                "   |   R 重播 / K 跳过画面";
+            // Only show original preview Foley where no approved final video
+            // soundtrack exists. Re-rendering the same scene does not restart it.
+            firstActFoley?.SetScene(n.id + "@" + state.history.Length, n.id, approved);
+            firstActFoley?.SetPaused(paused || investigating);
             ui.Hint.text = n.ending ? "结局解锁 · 你可以回溯以探寻其他选择" : "选择会改变后来你能掌握的证据与可能的结局";
             ui.ClearChoices();
             if (n.ending)
@@ -422,7 +455,11 @@ namespace Echo0317.Runtime
             if (investigating) StopSceneInvestigation(false);
             // Investigation and save panels pause the film so users cannot miss
             // dialogue while reading long notes or editing a save slot.
-            if (playing && !paused) { paused = true; video.Pause(); }
+            if (playing && !paused)
+            {
+                paused = true; video.Pause();
+                firstActFoley?.SetPaused(true);
+            }
             bool refreshBoard = page == "cases" && modalFlow.Current == "cases" &&
                 !string.IsNullOrEmpty(focusedCaseId);
             int restoreAction = ui.Modal.activeSelf && modalFlow.Current == page && page == "settings"
@@ -947,7 +984,11 @@ namespace Echo0317.Runtime
                         PersistPreferences();Open("settings");
                     });
             }
-            ui.AddModalButton("声音："+(muted?"静音":"开启"),()=>{muted=!muted;video.SetMuted(muted);PersistPreferences();Open("settings");});
+            ui.AddModalButton("声音："+(muted?"静音":"开启"),()=>{
+                muted=!muted;video.SetMuted(muted);
+                firstActFoley?.SetMuted(muted);
+                PersistPreferences();Open("settings");
+            });
             foreach(var speed in new []{.75f,1f,1.25f,1.5f})
             {
                 float s=speed;
@@ -964,14 +1005,12 @@ namespace Echo0317.Runtime
         {
             if (ui==null || catalog==null || state==null) return;
             if(!captionsEnabled){ui.Subtitle.text="";return;}
-            string content=catalog.Cue(video.CurrentClip,video.CurrentTime);
-            if(string.IsNullOrEmpty(content)&&!video.IsPlaying)
-            {
-                var n=catalog.Nodes[state.node];
-                var rendered=EchoScenePresentation.Lines(n,state.flags,state.attempts,state.inspections);
-                content=rendered.Length>0?rendered[rendered.Length-1]:"";
-            }
-            ui.Subtitle.text=content;
+            var node = catalog.Nodes[state.node];
+            var rendered = EchoScenePresentation.Lines(node,
+                state.flags, state.attempts, state.inspections);
+            ui.Subtitle.text = EchoSubtitlePresentation.Select(captionsEnabled,
+                video.IsPreparing, video.HasActiveVideo,
+                catalog.Cue(video.CurrentClip, video.CurrentTime), rendered);
         }
         void Update()
         {
