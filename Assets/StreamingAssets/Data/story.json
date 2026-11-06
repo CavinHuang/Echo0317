@@ -1365,7 +1365,10 @@
           "requires": [
             "joint_signed"
           ],
-          "lockedLabel": "需先完成两侧独立签署"
+          "lockedLabel": "需双方独立签署，且在推理板核实「独立意愿」案件",
+          "requiresSolved": [
+            "independent_will"
+          ]
         }
       ],
       "entryFlags": [],
