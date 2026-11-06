@@ -25,7 +25,7 @@ namespace Echo0317.Core
         public string[] entryFlags;
         public StoryReaction[] reactions;
     }
-    [Serializable] public class StoryReaction { public string @if, unless, text; }
+    [Serializable] public class StoryReaction { public string @if, unless, ifInspected, unlessInspected, text; }
     [Serializable] public class StoryChoice
     {
         public string label, to, flag, lockedLabel;
