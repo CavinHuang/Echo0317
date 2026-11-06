@@ -766,6 +766,7 @@ namespace Echo0317.Runtime
                 ui.PlayDossierSound(success ? EchoDossierCue.Solve : EchoDossierCue.Reject, muted);
                 deductionFeedback = success ? "推理成立：" + rule.explanation :
                     "推理尚不成立：" + rule.hint;
+                if (success) Render(); // Refresh newly unlocked ending choice without restarting its video.
                 Open("cases");
             }
             catch (Exception e)
