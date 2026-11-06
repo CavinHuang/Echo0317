@@ -124,10 +124,12 @@ namespace Echo0317.Core
                 {
                     if (reaction == null || string.IsNullOrWhiteSpace(reaction.text))
                         throw new InvalidDataException("剧情反馈文本无效 " + n.id);
-                    if (!string.IsNullOrEmpty(reaction.ifInspected) &&
+                    if (HotspotData.hotspots.Length > 0 &&
+                        !string.IsNullOrEmpty(reaction.ifInspected) &&
                         !Hotspots.ContainsKey(reaction.ifInspected))
                         throw new InvalidDataException("剧情反馈引用了未知调查点 " + n.id);
-                    if (!string.IsNullOrEmpty(reaction.unlessInspected) &&
+                    if (HotspotData.hotspots.Length > 0 &&
+                        !string.IsNullOrEmpty(reaction.unlessInspected) &&
                         !Hotspots.ContainsKey(reaction.unlessInspected))
                         throw new InvalidDataException("剧情反馈排除条件引用了未知调查点 " + n.id);
                 }
