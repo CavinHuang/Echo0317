@@ -998,7 +998,7 @@ namespace Echo0317.Runtime
                 if (Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i)))
                 {
                     // Keyboard controls must obey the same lock rules as UI buttons.
-                    if (EchoNarrative.Allowed(choices[i], state.flags)) Choose(state.node, choices[i]);
+                    if (EchoNarrative.AllowedWithDeductions(catalog, choices[i], state)) Choose(state.node, choices[i]);
                     return;
                 }
             }
