@@ -72,6 +72,10 @@ class Stage29Consequences(unittest.TestCase):
         tests=self.content("Assets/Tests/EditMode/EchoStage29NarrativeConsequencesTests.cs")
         self.assertIn('AuditEndingCannotBypassIndependentWillDeduction',tests)
         self.assertIn('OldAuditSaveIsMigratedButNewFormatCannotForgeProof',tests)
+        bootstrap=self.content("Assets/Tests/EditMode/EchoStage29ProjectBootstrapTests.cs")
+        self.assertIn('EchoBuild.EnsureScene();',bootstrap)
+        self.assertIn('AssetDatabase.LoadAssetAtPath<SceneAsset>(scene)',bootstrap)
+        self.assertIn('EditorBuildSettings.scenes.Where(s=>s.enabled)',bootstrap)
 
 
 if __name__=="__main__":
